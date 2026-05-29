@@ -31,8 +31,7 @@ public class OverlayRenderer {
         gc.fillText("Ban do: " + settings.getMapType()
                 + " | Hien thi: " + settings.getRenderMode()
                 + " | Xe: " + snapshot.getVehicles().size(), x + 12, y + 40);
-        gc.fillText("Dieu khien: " + settings.getControlMode()
-                + " | Luu luong: " + densityLabel(settings.getTrafficDensity()), x + 12, y + 58);
+        gc.fillText("Sinh xe: " + settings.getSpawnMode() + " | Den: " + settings.getLightMode(), x + 12, y + 58);
 
         if (snapshot.getPhaseIndex() >= 0) {
             gc.setFill(Color.web("#91e3a7"));
@@ -40,7 +39,7 @@ public class OverlayRenderer {
                     + " | Con lai: " + (int) Math.ceil(snapshot.getPhaseTimeLeft()) + "s", x + 12, y + 76);
         }
 
-        if (settings.getControlMode() == ControlMode.MANUAL) {
+        if (settings.getLightMode() == ControlMode.MANUAL) {
             gc.setFill(Color.web("#ffd166"));
             gc.fillText("Manual: click truc tiep vao den de doi mau", x + 12, y + height - 8);
         }

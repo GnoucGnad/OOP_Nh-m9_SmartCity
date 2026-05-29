@@ -20,7 +20,8 @@ public class ControlPanel extends VBox {
     private Runnable onReset = () -> { };
     private Consumer<MapType> onMapTypeChanged = value -> { };
     private Consumer<RenderMode> onRenderModeChanged = value -> { };
-    private Consumer<ControlMode> onControlModeChanged = value -> { };
+    private Consumer<ControlMode> onSpawnModeChanged = value -> { };
+    private Consumer<ControlMode> onLightModeChanged = value -> { };
     private Consumer<LightDisplayMode> onLightDisplayModeChanged = value -> { };
     private Consumer<Integer> onDensityChanged = value -> { };
     private Consumer<Double> onSpeedChanged = value -> { };
@@ -53,8 +54,11 @@ public class ControlPanel extends VBox {
         ComboBox<MapType> mapBox = enumBox(MapType.values(), settings.getMapType());
         mapBox.setOnAction(event -> onMapTypeChanged.accept(mapBox.getValue()));
 
-        ComboBox<ControlMode> controlBox = enumBox(ControlMode.values(), settings.getControlMode());
-        controlBox.setOnAction(event -> onControlModeChanged.accept(controlBox.getValue()));
+        ComboBox<ControlMode> spawnBox = enumBox(ControlMode.values(), settings.getSpawnMode());
+        spawnBox.setOnAction(event -> onSpawnModeChanged.accept(spawnBox.getValue()));
+
+        ComboBox<ControlMode> lightControlBox = enumBox(ControlMode.values(), settings.getLightMode());
+        lightControlBox.setOnAction(event -> onLightModeChanged.accept(lightControlBox.getValue()));
 
         ComboBox<RenderMode> renderBox = enumBox(RenderMode.values(), settings.getRenderMode());
         renderBox.setOnAction(event -> onRenderModeChanged.accept(renderBox.getValue()));
@@ -93,7 +97,8 @@ public class ControlPanel extends VBox {
                 section("Map"),
                 labeled("Loai ban do", mapBox),
                 section("Mode"),
-                labeled("Dieu khien", controlBox),
+                labeled("Sinh xe", spawnBox),
+                labeled("Den giao thong", lightControlBox),
                 labeled("Hien thi", renderBox),
                 labeled("Kieu den", lightBox),
                 section("Traffic"),
@@ -125,8 +130,12 @@ public class ControlPanel extends VBox {
         this.onRenderModeChanged = onRenderModeChanged;
     }
 
-    public void setOnControlModeChanged(Consumer<ControlMode> onControlModeChanged) {
-        this.onControlModeChanged = onControlModeChanged;
+    public void setOnSpawnModeChanged(Consumer<ControlMode> onSpawnModeChanged) {
+        this.onSpawnModeChanged = onSpawnModeChanged;
+    }
+
+    public void setOnLightModeChanged(Consumer<ControlMode> onLightModeChanged) {
+        this.onLightModeChanged = onLightModeChanged;
     }
 
     public void setOnLightDisplayModeChanged(Consumer<LightDisplayMode> onLightDisplayModeChanged) {

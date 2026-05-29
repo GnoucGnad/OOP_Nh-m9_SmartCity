@@ -53,7 +53,8 @@ public class TrafficLightRenderer {
                     double turnY = p.getY() + 2.0 * scale;
                     double turnW = Math.max(15.0, 25.0 * scale);
                     double turnH = Math.max(26.0, 46.0 * scale);
-                    if (screenX >= turnX - pad && screenX <= turnX + turnW + pad
+                    double leftTurnClickMinX = Math.max(p.getX() + width, turnX - pad);
+                    if (screenX >= leftTurnClickMinX && screenX <= turnX + turnW + pad
                             && screenY >= turnY - pad && screenY <= turnY + turnH + pad) {
                         return OptionalInt.of(visual.index() + 100);
                     }

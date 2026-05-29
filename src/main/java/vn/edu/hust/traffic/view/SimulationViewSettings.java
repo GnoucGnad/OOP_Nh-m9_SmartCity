@@ -3,7 +3,8 @@ package vn.edu.hust.traffic.view;
 public class SimulationViewSettings {
     private MapType mapType = MapType.ROAD_NETWORK;
     private RenderMode renderMode = RenderMode.GRAPHIC;
-    private ControlMode controlMode = ControlMode.AUTO;
+    private ControlMode spawnMode = ControlMode.AUTO;
+    private ControlMode lightMode = ControlMode.AUTO;
     private LightDisplayMode lightDisplayMode = LightDisplayMode.FULL_COUNTDOWN;
     private int trafficDensity = 2;
     private double simulationSpeed = 1.0;
@@ -27,12 +28,20 @@ public class SimulationViewSettings {
         this.renderMode = renderMode;
     }
 
-    public ControlMode getControlMode() {
-        return controlMode;
+    public ControlMode getSpawnMode() {
+        return spawnMode;
     }
 
-    public void setControlMode(ControlMode controlMode) {
-        this.controlMode = controlMode;
+    public void setSpawnMode(ControlMode spawnMode) {
+        this.spawnMode = spawnMode;
+    }
+
+    public ControlMode getLightMode() {
+        return lightMode;
+    }
+
+    public void setLightMode(ControlMode lightMode) {
+        this.lightMode = lightMode;
     }
 
     public LightDisplayMode getLightDisplayMode() {

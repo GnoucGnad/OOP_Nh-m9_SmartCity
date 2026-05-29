@@ -72,8 +72,12 @@ public class SimulationWindow extends Application {
         });
         controlPanel.setOnRenderModeChanged(settings::setRenderMode);
         controlPanel.setOnLightDisplayModeChanged(settings::setLightDisplayMode);
-        controlPanel.setOnControlModeChanged(mode -> {
-            settings.setControlMode(mode);
+        controlPanel.setOnSpawnModeChanged(mode -> {
+            settings.setSpawnMode(mode);
+            controllerAdapter.setAutoSpawnEnabled(mode == ControlMode.AUTO);
+        });
+        controlPanel.setOnLightModeChanged(mode -> {
+            settings.setLightMode(mode);
             controllerAdapter.setAutoMode(mode == ControlMode.AUTO);
         });
         controlPanel.setOnDensityChanged(value -> {
@@ -108,8 +112,13 @@ public class SimulationWindow extends Application {
                 return;
             }
             if (code == KeyCode.P) {
-                settings.setControlMode(settings.getControlMode() == ControlMode.AUTO ? ControlMode.MANUAL : ControlMode.AUTO);
-                controllerAdapter.setAutoMode(settings.getControlMode() == ControlMode.AUTO);
+                settings.setLightMode(settings.getLightMode() == ControlMode.AUTO ? ControlMode.MANUAL : ControlMode.AUTO);
+                controllerAdapter.setAutoMode(settings.getLightMode() == ControlMode.AUTO);
+                return;
+            }
+            if (code == KeyCode.O) {
+                settings.setSpawnMode(settings.getSpawnMode() == ControlMode.AUTO ? ControlMode.MANUAL : ControlMode.AUTO);
+                controllerAdapter.setAutoSpawnEnabled(settings.getSpawnMode() == ControlMode.AUTO);
                 return;
             }
 
@@ -130,7 +139,7 @@ public class SimulationWindow extends Application {
 
     private void configureMouse() {
         canvas.setOnMouseClicked(event -> {
-            if (settings.getControlMode() != ControlMode.MANUAL) {
+            if (settings.getLightMode() != ControlMode.MANUAL) {
                 return;
             }
             SimulationSnapshot snapshot = controllerAdapter.snapshot();
@@ -166,8 +175,6 @@ public class SimulationWindow extends Application {
     }
 
     private void update(double dt) {
-        controllerAdapter.setAutoMode(settings.getControlMode() == ControlMode.AUTO);
-        controllerAdapter.setTrafficDensity(settings.getTrafficDensity());
         controllerAdapter.getController().update(dt * settings.getSimulationSpeed());
     }
 
@@ -180,7 +187,8 @@ public class SimulationWindow extends Application {
     private void resetSimulation() {
         TrafficController controller = new TrafficController(toSimulationMode(settings.getMapType()));
         controllerAdapter = new TrafficControllerAdapter(controller);
-        controllerAdapter.setAutoMode(settings.getControlMode() == ControlMode.AUTO);
+        controllerAdapter.setAutoMode(settings.getLightMode() == ControlMode.AUTO);
+        controllerAdapter.setAutoSpawnEnabled(settings.getSpawnMode() == ControlMode.AUTO);
         controllerAdapter.setTrafficDensity(settings.getTrafficDensity());
     }
 

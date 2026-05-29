@@ -56,6 +56,7 @@ public class TrafficController {
     private ThreeWayPhaseController phaseController2;
     private IntersectionPhaseController phaseController3;
     private boolean autoSpawnEnabled = true;
+    private boolean autoMode = true;
     private int trafficDensity = 2;
 
     public TrafficController() {
@@ -119,14 +120,20 @@ public class TrafficController {
     }
 
     public void update(double dt) {
-        if (phaseController1 != null) {
-            phaseController1.update(dt, vehicles);
-        }
-        if (phaseController2 != null) {
-            phaseController2.update(dt, vehicles);
-        }
-        if (phaseController3 != null) {
-            phaseController3.update(dt, vehicles);
+        if (autoMode) {
+            if (phaseController1 != null) {
+                phaseController1.update(dt, vehicles);
+            }
+            if (phaseController2 != null) {
+                phaseController2.update(dt, vehicles);
+            }
+            if (phaseController3 != null) {
+                phaseController3.update(dt, vehicles);
+            }
+        } else {
+            for (TrafficLight light : getLights()) {
+                light.update(dt);
+            }
         }
 
         if (autoSpawnEnabled) {
@@ -338,6 +345,14 @@ public class TrafficController {
 
     public boolean isAutoSpawnEnabled() {
         return autoSpawnEnabled;
+    }
+
+    public boolean isAutoMode() {
+        return autoMode;
+    }
+
+    public void setAutoMode(boolean autoMode) {
+        this.autoMode = autoMode;
     }
 
     public void setTrafficDensity(int trafficDensity) {

@@ -66,16 +66,15 @@ public class TrafficControllerAdapter {
             }
         }
 
-        if (invoke(controller, "setAutoMode", new Class<?>[] { boolean.class }, autoMode) != null) {
-            return;
-        }
-        if (invoke(controller, "setAutoSpawnEnabled", new Class<?>[] { boolean.class }, autoMode) != null) {
-            return;
-        }
+        invoke(controller, "setAutoMode", new Class<?>[] { boolean.class }, autoMode);
+    }
 
-        Object current = invokeNoArg(controller, "isAutoSpawnEnabled");
-        if (current instanceof Boolean enabled && enabled != autoMode) {
-            invokeNoArg(controller, "toggleAutoSpawn");
+    public void setAutoSpawnEnabled(boolean autoSpawnEnabled) {
+        if (invoke(controller, "setAutoSpawnEnabled", new Class<?>[] { boolean.class }, autoSpawnEnabled) == null) {
+            Object current = invokeNoArg(controller, "isAutoSpawnEnabled");
+            if (current instanceof Boolean enabled && enabled != autoSpawnEnabled) {
+                invokeNoArg(controller, "toggleAutoSpawn");
+            }
         }
     }
 
