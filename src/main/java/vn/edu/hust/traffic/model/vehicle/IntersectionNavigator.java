@@ -120,7 +120,9 @@ public class IntersectionNavigator {
             }
 
             int otherLightIdx = other.getLightIdx(other.direction);
-            boolean sameAxis = (lightIdx < 2 && otherLightIdx < 2) || (lightIdx >= 2 && otherLightIdx >= 2);
+            boolean eitherTurning = v.isTurningSmoothly || v.isTurningDiagonally 
+                    || other.isTurningSmoothly || other.isTurningDiagonally;
+            boolean sameAxis = !eitherTurning && ((lightIdx < 2 && otherLightIdx < 2) || (lightIdx >= 2 && otherLightIdx >= 2));
             if (sameAxis) {
                 continue;
             }
@@ -249,7 +251,9 @@ public class IntersectionNavigator {
 
             int lightIdx = v.getLightIdx(v.direction);
             int otherLightIdx = other.getLightIdx(other.direction);
-            boolean sameAxis = (lightIdx < 2 && otherLightIdx < 2) || (lightIdx >= 2 && otherLightIdx >= 2);
+            boolean eitherTurning = v.isTurningSmoothly || v.isTurningDiagonally 
+                    || other.isTurningSmoothly || other.isTurningDiagonally;
+            boolean sameAxis = !eitherTurning && ((lightIdx < 2 && otherLightIdx < 2) || (lightIdx >= 2 && otherLightIdx >= 2));
             if (sameAxis && !isSameCollisionLane(v, other, lightIdx)) {
                 continue;
             }

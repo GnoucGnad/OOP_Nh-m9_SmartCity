@@ -95,6 +95,23 @@ public class TrajectoryController {
                 continue;
             }
 
+            // Skip checking if we have priority over other at the intersection and are not in a physical collision
+            boolean atSameIntersection = v.activeIntersectionId != null 
+                    && v.activeIntersectionId.equals(other.activeIntersectionId);
+            boolean sameTurnStream = v.originalLightIdx == other.originalLightIdx
+                    && v.turnIntention == other.turnIntention
+                    && v.turnIntention != 0;
+            double currentDistance = Math.hypot(other.x - v.x, other.y - v.y);
+            double overlapDistance = Math.max(18.0, (v.getHalfLength() + other.getHalfLength()) * 0.55);
+            
+            if (atSameIntersection && !sameTurnStream) {
+                if (IntersectionNavigator.shouldYieldForIntersectionCollision(other, v)) {
+                    if (currentDistance > overlapDistance * 0.75) {
+                        continue;
+                    }
+                }
+            }
+
             double relX = other.x - v.x;
             double relY = other.y - v.y;
             double ahead = relX * dirX + relY * dirY;
@@ -112,13 +129,9 @@ public class TrajectoryController {
             }
 
             double nextDistance = Math.hypot(other.x - nextX, other.y - nextY);
-            double overlapDistance = Math.max(18.0, (v.getHalfLength() + other.getHalfLength()) * 0.55);
             if (nextDistance < overlapDistance
                     && (other.isTurningSmoothly || other.isTurningDiagonally || other.insideRoundabout || other.exitedRoundabout)) {
                 if (nextDistance < overlapDistance * 0.75) {
-                    boolean sameTurnStream = v.originalLightIdx == other.originalLightIdx
-                            && v.turnIntention == other.turnIntention
-                            && v.turnIntention != 0;
                     // Tie-breaker to prevent mutual deadlock (only if not in same turn stream queue)
                     if (!sameTurnStream && v.id.compareTo(other.id) < 0) {
                         factor = Math.min(factor, 0.18);
@@ -163,17 +176,29 @@ public class TrajectoryController {
                 continue;
             }
 
+            // Skip checking if we have priority over other at the intersection and are not in a physical collision
+            boolean atSameIntersection = v.activeIntersectionId != null 
+                    && v.activeIntersectionId.equals(other.activeIntersectionId);
+            boolean sameTurnStream = v.originalLightIdx == other.originalLightIdx
+                    && v.turnIntention == other.turnIntention
+                    && v.turnIntention != 0;
+            double currentDistance = Math.hypot(other.x - v.x, other.y - v.y);
+            double overlapDistance = Math.max(18.0, (v.getHalfLength() + other.getHalfLength()) * 0.55);
+            
+            if (atSameIntersection && !sameTurnStream) {
+                if (IntersectionNavigator.shouldYieldForIntersectionCollision(other, v)) {
+                    if (currentDistance > overlapDistance * 0.75) {
+                        continue;
+                    }
+                }
+            }
+
             double relX = other.x - v.x;
             double relY = other.y - v.y;
             double ahead = relX * dirX + relY * dirY;
             double lateral = Math.abs(relX * dirY - relY * dirX);
             double laneThreshold = Math.max(18.0, (v.height + other.height) * 0.8);
             double combinedGap = safeGap + other.getHalfLength();
-            double currentDistance = Math.hypot(other.x - v.x, other.y - v.y);
-            double overlapDistance = Math.max(18.0, (v.getHalfLength() + other.getHalfLength()) * 0.55);
-            boolean sameTurnStream = v.originalLightIdx == other.originalLightIdx
-                    && v.turnIntention == other.turnIntention
-                    && v.turnIntention != 0;
 
             if (ahead > -other.getHalfLength() && ahead < combinedGap && lateral < laneThreshold) {
                 double hardGap = v.getHalfLength() + other.getHalfLength() + 6.0;
