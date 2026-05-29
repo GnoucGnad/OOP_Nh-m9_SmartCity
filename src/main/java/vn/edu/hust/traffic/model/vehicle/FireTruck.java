@@ -18,16 +18,4 @@ public class FireTruck extends Vehicle {
         // Kích thước thu nhỏ: 40x20, là xe ưu tiên => isPriorityVehicle = true
         super(id, x, y, speed, direction, 40, 20, true);
     }
-
-    @Override
-    public void movePhysically(double dt) {
-        // Di chuyển dựa trên hướng và tốc độ hiện tại
-        setX(getX() + Math.cos(getDirection()) * getSpeed() * dt);
-        setY(getY() + Math.sin(getDirection()) * getSpeed() * dt);
-    }
-
-    @Override
-    public void render() {
-        // Rendering sẽ được xử lý ở lớp View/Renderer, để trống ở đây.
-    }
 }

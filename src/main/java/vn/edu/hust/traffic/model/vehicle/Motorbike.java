@@ -9,15 +9,4 @@ public class Motorbike extends Vehicle {
         // Kích thước thu nhỏ: 16x8
         super(id, x, y, speed, direction, 16, 8, isPriorityVehicle);
     }
-
-    @Override
-    public void movePhysically(double dt) {
-        setX(getX() + Math.cos(getDirection()) * getSpeed() * dt);
-        setY(getY() + Math.sin(getDirection()) * getSpeed() * dt);
-    }
-
-    @Override
-    public void render() {
-        // Xử lý vẽ riêng nếu cần
-    }
 }

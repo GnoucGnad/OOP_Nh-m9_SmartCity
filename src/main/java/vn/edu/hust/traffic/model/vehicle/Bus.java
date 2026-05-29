@@ -9,15 +9,4 @@ public class Bus extends Vehicle {
         // Kích thước thu nhỏ cho vừa làn: 52x18
         super(id, x, y, speed, direction, 52, 18, false);
     }
-
-    @Override
-    public void movePhysically(double dt) {
-        // Tốc độ đã được Vehicle.update() tính toán chính xác — không nhân hệ số thêm
-        setX(getX() + Math.cos(getDirection()) * getSpeed() * dt);
-        setY(getY() + Math.sin(getDirection()) * getSpeed() * dt);
-    }
-
-    @Override
-    public void render() {
-    }
 }
