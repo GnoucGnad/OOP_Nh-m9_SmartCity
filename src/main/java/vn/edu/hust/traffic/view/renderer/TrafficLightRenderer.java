@@ -40,9 +40,27 @@ public class TrafficLightRenderer {
             SimulationViewSettings settings) {
         for (LightVisual visual : buildVisuals(settings.getMapType(), lights.size())) {
             Point2D p = camera.worldToScreen(visual.x(), visual.y());
-            double width = visual.width() * camera.getScale();
-            double height = visual.height() * camera.getScale();
-            double pad = Math.max(8.0, 8.0 * camera.getScale());
+            double scale = camera.getScale();
+            double width = visual.width() * scale;
+            double height = visual.height() * scale;
+            double pad = Math.max(8.0, 8.0 * scale);
+
+            // Check if left-turn light is clicked first (since it overlaps on the right)
+            if (visual.index() < lights.size()) {
+                TrafficLight light = lights.get(visual.index());
+                if (hasMethod(light, "getLeftTurnState")) {
+                    double turnX = p.getX() + width + 5.0 * scale;
+                    double turnY = p.getY() + 2.0 * scale;
+                    double turnW = Math.max(15.0, 25.0 * scale);
+                    double turnH = Math.max(26.0, 46.0 * scale);
+                    if (screenX >= turnX - pad && screenX <= turnX + turnW + pad
+                            && screenY >= turnY - pad && screenY <= turnY + turnH + pad) {
+                        return OptionalInt.of(visual.index() + 100);
+                    }
+                }
+            }
+
+            // Check click on the main straight light
             if (screenX >= p.getX() - pad && screenX <= p.getX() + width + pad
                     && screenY >= p.getY() - pad && screenY <= p.getY() + height + pad) {
                 return OptionalInt.of(visual.index());

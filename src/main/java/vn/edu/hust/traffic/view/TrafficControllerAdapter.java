@@ -49,6 +49,23 @@ public class TrafficControllerAdapter {
     }
 
     public void setAutoMode(boolean autoMode) {
+        if (!autoMode) {
+            List<TrafficLight> lights = readLights();
+            for (TrafficLight light : lights) {
+                try {
+                    Field timerField = light.getClass().getDeclaredField("timer");
+                    timerField.setAccessible(true);
+                    timerField.set(light, 20.0);
+
+                    Field leftTurnTimerField = light.getClass().getDeclaredField("leftTurnTimer");
+                    leftTurnTimerField.setAccessible(true);
+                    leftTurnTimerField.set(light, 20.0);
+                } catch (Exception ex) {
+                    // Ignore reflection errors
+                }
+            }
+        }
+
         if (invoke(controller, "setAutoMode", new Class<?>[] { boolean.class }, autoMode) != null) {
             return;
         }
@@ -70,21 +87,34 @@ public class TrafficControllerAdapter {
     }
 
     public boolean toggleTrafficLight(int index) {
-        if (invoke(controller, "switchLight", new Class<?>[] { int.class }, index) != null) {
-            return true;
+        boolean isLeftTurn = false;
+        if (index >= 100) {
+            index -= 100;
+            isLeftTurn = true;
         }
-        if (invoke(controller, "toggleLight", new Class<?>[] { int.class }, index) != null) {
-            return true;
-        }
-        if (invoke(controller, "cycleLight", new Class<?>[] { int.class }, index) != null) {
-            return true;
+
+        if (!isLeftTurn) {
+            if (invoke(controller, "switchLight", new Class<?>[] { int.class }, index) != null) {
+                return true;
+            }
+            if (invoke(controller, "toggleLight", new Class<?>[] { int.class }, index) != null) {
+                return true;
+            }
+            if (invoke(controller, "cycleLight", new Class<?>[] { int.class }, index) != null) {
+                return true;
+            }
         }
 
         List<TrafficLight> lights = readLights();
         if (index < 0 || index >= lights.size()) {
             return false;
         }
-        return cycleLightObject(lights.get(index));
+        TrafficLight light = lights.get(index);
+        if (isLeftTurn) {
+            return cycleLeftTurnLightObject(light);
+        } else {
+            return cycleLightObject(light);
+        }
     }
 
     private List<Vehicle> readVehicles() {
@@ -150,6 +180,36 @@ public class TrafficControllerAdapter {
             stateField.set(light, nextState);
 
             Field timerField = light.getClass().getDeclaredField("timer");
+            timerField.setAccessible(true);
+            timerField.set(light, 20.0);
+            return true;
+        } catch (ReflectiveOperationException ex) {
+            return false;
+        }
+    }
+
+    private boolean cycleLeftTurnLightObject(TrafficLight light) {
+        Object currentState = invokeNoArg(light, "getLeftTurnState");
+        if (!(currentState instanceof Enum<?> currentEnum)) {
+            return false;
+        }
+
+        Class<?> enumType = currentEnum.getDeclaringClass();
+        Object nextState = nextState(enumType, currentEnum.name());
+        if (nextState == null) {
+            return false;
+        }
+
+        if (invoke(light, "forceLeftTurnState", new Class<?>[] { enumType, double.class }, nextState, 20.0) != null) {
+            return true;
+        }
+
+        try {
+            Field stateField = light.getClass().getDeclaredField("leftTurnState");
+            stateField.setAccessible(true);
+            stateField.set(light, nextState);
+
+            Field timerField = light.getClass().getDeclaredField("leftTurnTimer");
             timerField.setAccessible(true);
             timerField.set(light, 20.0);
             return true;
