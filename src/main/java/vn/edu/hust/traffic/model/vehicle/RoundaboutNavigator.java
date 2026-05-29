@@ -89,6 +89,10 @@ public class RoundaboutNavigator {
                 if (other != v && other.insideRoundabout) {
                     double diff = Vehicle.counterClockwiseDistance(other.roundaboutAngle, thetaSource);
                     double priorityWindow = (!v.isPriorityVehicle && other.isPriorityVehicle) ? 1.0 : 0.6;
+                    // If the other vehicle is stopped or moving extremely slowly, reduce the window to prevent gridlock
+                    if (other.speed < 2.0) {
+                        priorityWindow = 0.25; 
+                    }
                     if (diff > 0 && diff < priorityWindow) {
                         yieldRequired = true;
                         break;
@@ -190,8 +194,13 @@ public class RoundaboutNavigator {
                             double minGap = 8.0;
                             if (gap <= minGap) {
                                 if (gap <= 0.0) {
-                                    hardRoundaboutBlock = true;
-                                    shouldStop = true;
+                                    // Tie-breaker to prevent mutual deadlock inside roundabout (only if different/crossing lanes)
+                                    if (laneDistance >= 12.0 && v.id.compareTo(other.id) < 0) {
+                                        currentTargetSpeed = Math.max(currentTargetSpeed, v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR * 0.5);
+                                    } else {
+                                        hardRoundaboutBlock = true;
+                                        shouldStop = true;
+                                    }
                                 } else {
                                     currentTargetSpeed = Math.min(currentTargetSpeed,
                                             Math.max(other.speed, v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR));

@@ -629,6 +629,16 @@ public class TrafficTest {
     }
 
     @Test
+    public void roadNetworkRunsForThreeMinutesAndKeepsVehiclesInMotion() {
+        TrafficController controller = new TrafficController(SimulationMode.ROAD_NETWORK);
+        runControllerForSeconds(controller, 180);
+
+        assertFalse(controller.getVehicles().isEmpty(), "Vehicles list should not be empty");
+        long movingCount = controller.getVehicles().stream().filter(v -> v.getSpeed() > 1.0).count();
+        assertTrue(movingCount > 0, "There should be moving vehicles. Moving count = " + movingCount + "/" + controller.getVehicles().size());
+    }
+
+    @Test
     public void fiveWayRoundaboutCirculatesCounterClockwise() {
         List<Intersection> intersections = List.of(new RoundaboutIntersection("roundabout1", 600.0, 300.0, 100.0));
         List<Vehicle> vehicles = new ArrayList<>();

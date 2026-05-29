@@ -64,6 +64,10 @@ public class TrajectoryController {
                     if (v.hasRoundaboutExitSmoothPriorityOver(other)) {
                         continue;
                     }
+                    // Tie-breaker to prevent mutual deadlock
+                    if (v.id.compareTo(other.id) < 0) {
+                        continue;
+                    }
                     double relX = other.x - v.x;
                     double relY = other.y - v.y;
                     double ahead = (relX * pathX + relY * pathY) / pathLength;
@@ -112,6 +116,14 @@ public class TrajectoryController {
             if (nextDistance < overlapDistance
                     && (other.isTurningSmoothly || other.isTurningDiagonally || other.insideRoundabout || other.exitedRoundabout)) {
                 if (nextDistance < overlapDistance * 0.75) {
+                    boolean sameTurnStream = v.originalLightIdx == other.originalLightIdx
+                            && v.turnIntention == other.turnIntention
+                            && v.turnIntention != 0;
+                    // Tie-breaker to prevent mutual deadlock (only if not in same turn stream queue)
+                    if (!sameTurnStream && v.id.compareTo(other.id) < 0) {
+                        factor = Math.min(factor, 0.18);
+                        continue;
+                    }
                     return 0.0;
                 }
                 factor = Math.min(factor, 0.18);
@@ -175,6 +187,10 @@ public class TrajectoryController {
                         continue;
                     }
                     if (!v.passedStopLine || currentDistance < overlapDistance * 0.6) {
+                        if (v.id.compareTo(other.id) < 0) {
+                            factor = Math.min(factor, diagonalTurnCrawlFactor(v, ahead, other, dt));
+                            continue;
+                        }
                         return 0.0;
                     }
                     factor = Math.min(factor, diagonalTurnCrawlFactor(v, ahead, other, dt));

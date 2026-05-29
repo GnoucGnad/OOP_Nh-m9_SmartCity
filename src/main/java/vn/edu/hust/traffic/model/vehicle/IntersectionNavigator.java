@@ -271,8 +271,20 @@ public class IntersectionNavigator {
             boolean severeImmediateCollision = currentDistance < collisionGap * Vehicle.STANDARD_INTERSECTION_SEVERE_COLLISION_FACTOR
                     || nextDistance < collisionGap * Vehicle.STANDARD_INTERSECTION_SEVERE_COLLISION_FACTOR;
             boolean hardCollision = immediateCollision || pathDistance < collisionGap * 0.85;
-            if (!mustYield && !hardCollision) {
-                continue;
+
+            // Resolve mutual approach deadlocks at intersections
+            boolean otherClearing = other.passedStopLine || v.isInsideStandardIntersection(intersection, other.x, other.y);
+            if (!mustYield) {
+                if (hardCollision && otherClearing) {
+                    // We must yield to the vehicle already clearing the intersection to prevent accidents
+                } else {
+                    // We have priority, and the other vehicle is not inside, so we proceed (we do not stop)
+                    continue;
+                }
+            } else {
+                if (!hardCollision) {
+                    continue;
+                }
             }
 
             boolean insideIntersection = Math.hypot(v.x - intersection.getX(), v.y - intersection.getY())
