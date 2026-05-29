@@ -11,7 +11,6 @@ import vn.edu.hust.traffic.view.SimulationViewSettings;
 public class OverlayRenderer {
     public void render(GraphicsContext gc, SimulationSnapshot snapshot, SimulationViewSettings settings) {
         drawStatus(gc, snapshot, settings);
-        drawLegend(gc);
     }
 
     private void drawStatus(GraphicsContext gc, SimulationSnapshot snapshot, SimulationViewSettings settings) {
