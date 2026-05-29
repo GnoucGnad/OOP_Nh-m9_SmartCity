@@ -37,7 +37,7 @@ public class RoadRenderer {
 
     private void drawCrossIntersection(GraphicsContext gc, Camera camera) {
         // Draw the connecting vertical road
-        drawRoad(gc, camera, CROSS_X, (TOP_CROSS_Y + BOTTOM_CROSS_Y) / 2.0, (BOTTOM_CROSS_Y - TOP_CROSS_Y) + 720, 160, 90);
+        drawRoad(gc, camera, CROSS_X, (TOP_CROSS_Y + BOTTOM_CROSS_Y) / 2.0, (BOTTOM_CROSS_Y - TOP_CROSS_Y) + 1100, 160, 90);
         
         // Draw the bottom cross intersection at Y = BOTTOM_CROSS_Y
         drawCrossIntersectionAt(gc, camera, CROSS_X, BOTTOM_CROSS_Y, 0, 800, false);
@@ -157,10 +157,10 @@ public class RoadRenderer {
     private void drawRoadNetwork(GraphicsContext gc, Camera camera) {
         // Draw horizontal roads: main at Y = BOTTOM_CROSS_Y, top at Y = TOP_CROSS_Y
         drawRoad(gc, camera, 800, BOTTOM_CROSS_Y, 1900, 160, 0);
-        drawRoad(gc, camera, CROSS_X, TOP_CROSS_Y, 800, 160, 0);
+        drawRoad(gc, camera, CROSS_X, TOP_CROSS_Y, 1100, 160, 0);
 
         // Draw vertical connecting road at X = CROSS_X
-        drawRoad(gc, camera, CROSS_X, (TOP_CROSS_Y + BOTTOM_CROSS_Y) / 2.0, (BOTTOM_CROSS_Y - TOP_CROSS_Y) + 720, 160, 90);
+        drawRoad(gc, camera, CROSS_X, (TOP_CROSS_Y + BOTTOM_CROSS_Y) / 2.0, (BOTTOM_CROSS_Y - TOP_CROSS_Y) + 1100, 160, 90);
 
         // Draw vertical road connecting three1 up to roundabout (X = THREE_WAY_X)
         double verticalCenterY = (BOTTOM_CROSS_Y + TOP_CROSS_Y + 190) / 2.0;
@@ -224,8 +224,8 @@ public class RoadRenderer {
         drawIntersectionCorner(gc, camera, centerX, centerY, 1, -1);
         drawIntersectionCorner(gc, camera, centerX, centerY, -1, 1);
         drawIntersectionCorner(gc, camera, centerX, centerY, 1, 1);
-        drawLaneMarkings(gc, camera, true, centerY, fromX, centerX - STOP_OFFSET);
-        drawLaneMarkings(gc, camera, true, centerY, centerX + STOP_OFFSET, toX);
+        drawLaneMarkings(gc, camera, true, centerY, fromX - 50, centerX - STOP_OFFSET);
+        drawLaneMarkings(gc, camera, true, centerY, centerX + STOP_OFFSET, toX + 50);
         drawVerticalIntersectionLaneMarkings(gc, camera, centerX, centerY, true, true);
         drawCrossIntersectionArrows(gc, camera, centerX, centerY);
         drawStopLines(gc, camera, centerX, centerY, true, true);
@@ -233,13 +233,13 @@ public class RoadRenderer {
     }
 
     private void drawThreeWayIntersectionAt(GraphicsContext gc, Camera camera, double centerX, double fromX, double toX) {
-        drawRoad(gc, camera, centerX, CENTER_Y, toX - fromX + 100, 160, 0);
+        drawRoad(gc, camera, (fromX + toX) / 2.0, CENTER_Y, toX - fromX + 100, 160, 0);
         drawRoad(gc, camera, centerX, CENTER_Y - 165, 430, 160, 90);
         fillWorldRect(gc, camera, centerX - 80, CENTER_Y - 80, 160, 160, ROAD);
         drawIntersectionCorner(gc, camera, centerX, CENTER_Y, -1, -1);
         drawIntersectionCorner(gc, camera, centerX, CENTER_Y, 1, -1);
-        drawLaneMarkings(gc, camera, true, CENTER_Y, fromX, centerX - STOP_OFFSET);
-        drawLaneMarkings(gc, camera, true, CENTER_Y, centerX + STOP_OFFSET, toX);
+        drawLaneMarkings(gc, camera, true, CENTER_Y, fromX - 50, centerX - STOP_OFFSET);
+        drawLaneMarkings(gc, camera, true, CENTER_Y, centerX + STOP_OFFSET, toX + 50);
         drawVerticalIntersectionLaneMarkings(gc, camera, centerX, CENTER_Y, true, false);
         drawThreeWayIntersectionArrows(gc, camera, centerX, CENTER_Y);
         drawStopLines(gc, camera, centerX, CENTER_Y, true, false);
@@ -248,22 +248,22 @@ public class RoadRenderer {
 
     private void drawHorizontalNetworkLaneMarkings(GraphicsContext gc, Camera camera) {
         // Bottom horizontal road (at Y = BOTTOM_CROSS_Y)
-        drawLaneMarkings(gc, camera, true, BOTTOM_CROSS_Y, 0, CROSS_X - STOP_OFFSET);
+        drawLaneMarkings(gc, camera, true, BOTTOM_CROSS_Y, -150, CROSS_X - STOP_OFFSET);
         drawLaneMarkings(gc, camera, true, BOTTOM_CROSS_Y, CROSS_X + STOP_OFFSET, THREE_WAY_X - STOP_OFFSET);
-        drawLaneMarkings(gc, camera, true, BOTTOM_CROSS_Y, THREE_WAY_X + STOP_OFFSET, 1400);
+        drawLaneMarkings(gc, camera, true, BOTTOM_CROSS_Y, THREE_WAY_X + STOP_OFFSET, 1750);
 
         // Top horizontal road (at Y = TOP_CROSS_Y)
-        drawLaneMarkings(gc, camera, true, TOP_CROSS_Y, 0, CROSS_X - STOP_OFFSET);
-        drawLaneMarkings(gc, camera, true, TOP_CROSS_Y, CROSS_X + STOP_OFFSET, 800);
+        drawLaneMarkings(gc, camera, true, TOP_CROSS_Y, -150, CROSS_X - STOP_OFFSET);
+        drawLaneMarkings(gc, camera, true, TOP_CROSS_Y, CROSS_X + STOP_OFFSET, 850);
     }
 
     private void drawVerticalIntersectionLaneMarkings(GraphicsContext gc, Camera camera,
             double centerX, double centerY, boolean includeNorth, boolean includeSouth) {
         if (includeNorth) {
-            drawLaneMarkings(gc, camera, false, centerX, TOP_CROSS_Y - 500, centerY - STOP_OFFSET);
+            drawLaneMarkings(gc, camera, false, centerX, TOP_CROSS_Y - 600, centerY - STOP_OFFSET);
         }
         if (includeSouth) {
-            drawLaneMarkings(gc, camera, false, centerX, centerY + STOP_OFFSET, 800);
+            drawLaneMarkings(gc, camera, false, centerX, centerY + STOP_OFFSET, 900);
         }
     }
 

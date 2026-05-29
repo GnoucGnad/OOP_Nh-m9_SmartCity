@@ -20,10 +20,20 @@ public class DefaultRenderer implements Renderer {
         gc.setFill(Color.web("#eef1ed"));
         gc.fillRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
 
+        gc.save();
+        javafx.geometry.Point2D p = camera.worldToScreen(camera.getWorldX(), camera.getWorldY());
+        double clipW = camera.getWorldWidth() * camera.getScale();
+        double clipH = camera.getWorldHeight() * camera.getScale();
+        
+        gc.beginPath();
+        gc.rect(p.getX(), p.getY(), clipW, clipH);
+        gc.clip();
+
         roadRenderer.render(gc, camera, settings.getMapType());
         vehicleRenderer.tick(System.nanoTime());
         vehicleRenderer.render(gc, snapshot.getVehicles(), camera, settings);
         trafficLightRenderer.render(gc, snapshot.getLights(), camera, settings);
+        gc.restore();
 
         if (settings.isShowOverlay()) {
             overlayRenderer.render(gc, snapshot, settings);

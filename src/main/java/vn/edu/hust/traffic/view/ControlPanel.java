@@ -73,15 +73,6 @@ public class ControlPanel extends VBox {
             onDensityChanged.accept(value);
         });
 
-        Label speedValue = valueLabel(String.format("%.1fx", settings.getSimulationSpeed()));
-        Slider speed = new Slider(0.5, 2.0, settings.getSimulationSpeed());
-        speed.setMajorTickUnit(0.5);
-        speed.setMinorTickCount(1);
-        speed.valueProperty().addListener((obs, oldValue, newValue) -> {
-            double rounded = Math.round(newValue.doubleValue() * 10.0) / 10.0;
-            speedValue.setText(String.format("%.1fx", rounded));
-            onSpeedChanged.accept(rounded);
-        });
 
         CheckBox sound = new CheckBox("Sound enabled");
         sound.setSelected(settings.isSoundEnabled());
@@ -107,7 +98,6 @@ public class ControlPanel extends VBox {
                 labeled("Kieu den", lightBox),
                 section("Traffic"),
                 labeled("Luu luong", density, densityValue),
-                labeled("Toc do mo phong", speed, speedValue),
                 section("Sound"),
                 sound,
                 labeled("Am luong", volume, volumeValue),

@@ -14,3 +14,7 @@
 # OS
 Thumbs.db
 
+# Local Maven
+/apache-maven-3.9.6/
+/maven.zip
+

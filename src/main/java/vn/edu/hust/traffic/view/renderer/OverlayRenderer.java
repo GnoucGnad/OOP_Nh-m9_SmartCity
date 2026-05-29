@@ -33,7 +33,6 @@ public class OverlayRenderer {
                 + " | Hien thi: " + settings.getRenderMode()
                 + " | Xe: " + snapshot.getVehicles().size(), x + 12, y + 40);
         gc.fillText("Dieu khien: " + settings.getControlMode()
-                + " | Toc do: " + String.format("%.1fx", settings.getSimulationSpeed())
                 + " | Luu luong: " + densityLabel(settings.getTrafficDensity()), x + 12, y + 58);
 
         if (snapshot.getPhaseIndex() >= 0) {
