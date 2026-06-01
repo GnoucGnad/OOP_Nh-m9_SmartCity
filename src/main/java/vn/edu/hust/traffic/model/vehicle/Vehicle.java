@@ -127,7 +127,7 @@ public abstract class Vehicle implements vn.edu.hust.traffic.base.Renderable, vn
         return width / 2.0;
     }
 
-    Intersection getTargetIntersection(List<Intersection> intersections) {
+    public Intersection getTargetIntersection(List<Intersection> intersections) {
         Intersection target = null;
         double minPositiveDist = Double.MAX_VALUE;
         double hl = getHalfLength();

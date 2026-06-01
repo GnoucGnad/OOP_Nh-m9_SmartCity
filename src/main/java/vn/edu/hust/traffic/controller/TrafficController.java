@@ -122,13 +122,13 @@ public class TrafficController {
     public void update(double dt) {
         if (autoMode) {
             if (phaseController1 != null) {
-                phaseController1.update(dt, vehicles);
+                phaseController1.update(dt, vehicles, intersections);
             }
             if (phaseController2 != null) {
-                phaseController2.update(dt, vehicles);
+                phaseController2.update(dt, vehicles, intersections);
             }
             if (phaseController3 != null) {
-                phaseController3.update(dt, vehicles);
+                phaseController3.update(dt, vehicles, intersections);
             }
         } else {
             for (TrafficLight light : getLights()) {

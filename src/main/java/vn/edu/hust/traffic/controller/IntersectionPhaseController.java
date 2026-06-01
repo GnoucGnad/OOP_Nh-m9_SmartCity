@@ -40,6 +40,7 @@ public class IntersectionPhaseController {
     private int currentPhase;
     private double phaseTimer;
     private final List<TrafficLight> lights;
+    private boolean preemptionWasActive = false;
 
     public IntersectionPhaseController(List<TrafficLight> lights) {
         this.lights = lights;
@@ -48,25 +49,149 @@ public class IntersectionPhaseController {
     }
 
     public void update(double dt, List<Vehicle> vehicles) {
+        update(dt, vehicles, null);
+    }
+
+    public void update(double dt, List<Vehicle> vehicles, List<vn.edu.hust.traffic.model.map.Intersection> intersections) {
         for (TrafficLight light : lights) {
             light.update(dt);
         }
+
+        Vehicle pri = getApproachingPriorityVehicle(vehicles, intersections);
+        if (pri != null) {
+            int priLightIdx = pri.getLightIdx(pri.getDirection());
+            for (int i = 0; i < lights.size(); i++) {
+                TrafficLight light = lights.get(i);
+                if (i == priLightIdx) {
+                    light.forceState(State.GREEN, 999.0);
+                    light.forceLeftTurnState(State.GREEN, 999.0);
+                } else {
+                    light.forceState(State.RED, 999.0);
+                    light.forceLeftTurnState(State.RED, 999.0);
+                }
+            }
+            phaseTimer = 5.0; // Freeze the timer while preemption is active
+            preemptionWasActive = true;
+            return;
+        }
+
+        if (preemptionWasActive) {
+            reapplyCurrentPhase(vehicles);
+            preemptionWasActive = false;
+        }
+
         phaseTimer -= dt;
         if (phaseTimer <= 0) {
             advancePhase(vehicles);
         }
     }
 
-    private void advancePhase(List<Vehicle> vehicles) {
-        currentPhase = (currentPhase + 1) % 12;
+    private Vehicle getApproachingPriorityVehicle(List<Vehicle> vehicles, List<vn.edu.hust.traffic.model.map.Intersection> intersections) {
+        if (vehicles == null || intersections == null) return null;
+        Vehicle closest = null;
+        double minDist = Double.MAX_VALUE;
+        for (Vehicle v : vehicles) {
+            if (v.isPriorityVehicle()) {
+                vn.edu.hust.traffic.model.map.Intersection target = v.getTargetIntersection(intersections);
+                if (target != null && target.getLights() == this.lights) {
+                    double dist = v.getDistToStopLine();
+                    if (dist > -30 && dist < 350) {
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = v;
+                        }
+                    }
+                }
+            }
+        }
+        return closest;
+    }
 
+    private void reapplyCurrentPhase(List<Vehicle> vehicles) {
+        applyPhase(currentPhase, vehicles);
+    }
+
+    private void advancePhase(List<Vehicle> vehicles) {
+        int nextPhase = (currentPhase + 1) % 12;
+        int checkCount = 0;
+        while (checkCount < 12) {
+            if (nextPhase % 2 == 1 && currentPhase == nextPhase - 1) {
+                // Do not skip yellow transitions for the green phase that just ran
+                break;
+            }
+            if (shouldSkipPhase(nextPhase, vehicles)) {
+                nextPhase = (nextPhase + 1) % 12;
+                checkCount++;
+            } else {
+                break;
+            }
+        }
+        if (checkCount == 12) {
+            nextPhase = (currentPhase + 1) % 12;
+        }
+        currentPhase = nextPhase;
+        applyPhase(currentPhase, vehicles);
+    }
+
+    private boolean shouldSkipPhase(int phase, List<Vehicle> vehicles) {
+        if (vehicles == null || vehicles.isEmpty()) {
+            return false;
+        }
+
+        int greenPhase = phase;
+        if (phase % 2 == 1) {
+            greenPhase = phase - 1;
+        }
+
+        switch (greenPhase) {
+            case 0: // LTR Thẳng + Trái
+                return !hasApproachingVehicles(vehicles, 0, new int[]{0, 1});
+            case 2: // LTR & RTL Thẳng
+                return !hasApproachingVehicles(vehicles, 0, new int[]{0}) && !hasApproachingVehicles(vehicles, 1, new int[]{0});
+            case 4: // RTL Thẳng + Trái
+                return !hasApproachingVehicles(vehicles, 1, new int[]{0, 1});
+            case 6: // TTB Thẳng + Trái
+                return !hasApproachingVehicles(vehicles, 2, new int[]{0, 1});
+            case 8: // TTB & BTT Thẳng
+                return !hasApproachingVehicles(vehicles, 2, new int[]{0}) && !hasApproachingVehicles(vehicles, 3, new int[]{0});
+            case 10: // BTT Thẳng + Trái
+                return !hasApproachingVehicles(vehicles, 3, new int[]{0, 1});
+            default:
+                return false;
+        }
+    }
+
+    private boolean hasApproachingVehicles(List<Vehicle> vehicles, int targetLightIdx, int[] intentions) {
+        for (Vehicle v : vehicles) {
+            if (v.hasTurned()) continue;
+            int vLightIdx = v.getLightIdx(v.getDirection());
+            if (vLightIdx != targetLightIdx) continue;
+
+            boolean intentionMatches = false;
+            for (int intent : intentions) {
+                if (v.getTurnIntention() == intent) {
+                    intentionMatches = true;
+                    break;
+                }
+            }
+            if (!intentionMatches) continue;
+
+            double dist = v.getDistToStopLine();
+            if (dist > -10 && dist < 250) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void applyPhase(int phase, List<Vehicle> vehicles) {
         State ltrS = State.RED, ltrL = State.RED;
         State rtlS = State.RED, rtlL = State.RED;
         State ttbS = State.RED, ttbL = State.RED;
         State bttS = State.RED, bttL = State.RED;
         double duration = DUR_YELLOW;
 
-        switch (currentPhase) {
+        switch (phase) {
             case 0: // LTR Xanh sớm
                 ltrS = State.GREEN; ltrL = State.GREEN;
                 duration = calculateDynamicDuration(vehicles, 0, 1, BASE_LEFT, MAX_LEFT);
@@ -113,7 +238,6 @@ public class IntersectionPhaseController {
 
         phaseTimer = duration;
 
-        // Áp trạng thái đồng bộ cho 4 đèn
         lights.get(0).forceState(ltrS, duration);          // LTR thẳng
         lights.get(0).forceLeftTurnState(ltrL, duration);   // LTR rẽ trái
         lights.get(1).forceState(rtlS, duration);          // RTL thẳng

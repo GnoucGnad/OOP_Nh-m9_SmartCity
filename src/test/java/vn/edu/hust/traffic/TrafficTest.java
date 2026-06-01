@@ -28,8 +28,60 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TrafficTest {
     @Test
-    public void testExample() {
-        // TODO: Write test cases for simulation components.
+    public void testEmergencyPreemptionInIntersection() throws Exception {
+        List<TrafficLight> lights = redLights(4);
+        CrossIntersection cross = new CrossIntersection("cross1", 400.0, 300.0, lights);
+        List<Intersection> intersections = List.of(cross);
+        
+        Vehicle ambulance = new Ambulance("Amb1", 200.0, 340.0, 80.0, 0.0, true);
+        List<Vehicle> vehicles = List.of(ambulance);
+        
+        ambulance.update(0.016, vehicles, intersections, 1400, 600);
+        
+        vn.edu.hust.traffic.controller.IntersectionPhaseController phaseController = 
+            new vn.edu.hust.traffic.controller.IntersectionPhaseController(lights);
+            
+        phaseController.update(0.016, vehicles, intersections);
+        
+        assertEquals(TrafficLight.State.GREEN, lights.get(0).getState());
+        assertEquals(TrafficLight.State.GREEN, lights.get(0).getLeftTurnState());
+        
+        assertEquals(TrafficLight.State.RED, lights.get(1).getState());
+        assertEquals(TrafficLight.State.RED, lights.get(1).getLeftTurnState());
+        
+        setBooleanField(ambulance, "passedStopLine", true);
+        setDoubleField(ambulance, "x", 600.0);
+        ambulance.update(0.016, vehicles, intersections, 1400, 600);
+        
+        phaseController.update(0.016, vehicles, intersections);
+        
+        assertEquals(TrafficLight.State.GREEN, lights.get(0).getState());
+        assertEquals(TrafficLight.State.RED, lights.get(1).getState());
+    }
+
+    @Test
+    public void testSmartActuatedPhaseSkipping() throws Exception {
+        List<TrafficLight> lights = redLights(4);
+        CrossIntersection cross = new CrossIntersection("cross1", 400.0, 300.0, lights);
+        List<Intersection> intersections = List.of(cross);
+        
+        Vehicle car = new Car("CarRTL", 600.0, 260.0, 80.0, Math.PI, 26, 13, false);
+        car.setTurnIntention(0);
+        List<Vehicle> vehicles = List.of(car);
+        car.update(0.016, vehicles, intersections, 1400, 600);
+        
+        vn.edu.hust.traffic.controller.IntersectionPhaseController phaseController = 
+            new vn.edu.hust.traffic.controller.IntersectionPhaseController(lights);
+            
+        Field currentPhaseField = phaseController.getClass().getDeclaredField("currentPhase");
+        currentPhaseField.setAccessible(true);
+        currentPhaseField.setInt(phaseController, 5);
+        
+        Method advancePhaseMethod = phaseController.getClass().getDeclaredMethod("advancePhase", List.class);
+        advancePhaseMethod.setAccessible(true);
+        advancePhaseMethod.invoke(phaseController, vehicles);
+        
+        assertEquals(2, phaseController.getCurrentPhase());
     }
 
     @Test
