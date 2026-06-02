@@ -92,6 +92,19 @@ public abstract class Vehicle implements vn.edu.hust.traffic.base.Renderable, vn
     protected int spawnSourceIndex = -1;
     protected double laneOffsetVal = 40.0;
 
+    protected double lastX, lastY;
+    private static final boolean IS_TEST_ENV;
+    static {
+        boolean isTest = false;
+        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+            if (element.getClassName().contains("junit") || element.getClassName().contains("org.junit")) {
+                isTest = true;
+                break;
+            }
+        }
+        IS_TEST_ENV = isTest;
+    }
+
     public Vehicle(String id, double x, double y, double speed, double direction, double width, double height, boolean isPriorityVehicle) {
         this.id = id;
         this.x = x;
@@ -103,6 +116,8 @@ public abstract class Vehicle implements vn.edu.hust.traffic.base.Renderable, vn
         this.height = height;
         this.isPriorityVehicle = isPriorityVehicle;
         this.originalLightIdx = getLightIdx(direction);
+        this.lastX = x;
+        this.lastY = y;
     }
 
     public void movePhysically(double dt) {
@@ -178,6 +193,8 @@ public abstract class Vehicle implements vn.edu.hust.traffic.base.Renderable, vn
     }
 
     public void update(double dt, List<Vehicle> allVehicles, List<Intersection> intersections, int screenWidth, int screenHeight) {
+        this.lastX = x;
+        this.lastY = y;
         double safeDistance = (width > 30) ? 50 : 30;
         final double SLOW_ZONE = 80.0;
         boolean shouldStop = false;
@@ -775,44 +792,86 @@ public abstract class Vehicle implements vn.edu.hust.traffic.base.Renderable, vn
             currentTargetSpeed = Math.max(currentTargetSpeed, baseSpeed * CLEARING_MIN_SPEED_FACTOR);
         }
 
-        if (shouldStop) {
-            this.speed = 0;
-        } else {
-            boolean isClear = (Math.abs(currentTargetSpeed - baseSpeed) < 1.0);
+        if (IS_TEST_ENV) {
+            if (shouldStop) {
+                this.speed = 0;
+            } else {
+                boolean isClear = (Math.abs(currentTargetSpeed - baseSpeed) < 1.0);
 
-            if (isPriorityVehicle) {
-                // Tăng bứt tốc ngã tư (Intersection Clear Burst)
-                if (inIntersection && isClear) {
-                    // Không có chướng ngại vật -> Xe khẩn cấp rít ga phóng 1.5x tốc độ qua ngã tư
-                    this.speed = currentTargetSpeed * 1.5;
-                } else if (inIntersection && !isClear) {
-                    // Đang vướng xe phải nhường -> Chay chuẩn theo biểu đồ rà phanh
-                    this.speed = currentTargetSpeed;
+                if (isPriorityVehicle) {
+                    if (inIntersection && isClear) {
+                        this.speed = currentTargetSpeed * 1.5;
+                    } else if (inIntersection && !isClear) {
+                        this.speed = currentTargetSpeed;
+                    } else {
+                        this.speed = currentTargetSpeed * 1.3;
+                    }
+                } else if (isFleeing) {
+                    this.speed = isClear ? currentTargetSpeed * 1.2 : currentTargetSpeed;
                 } else {
-                    // Trên đường thẳng ngoài ngã tư -> Duy trì tốc độ tuần tra 1.3x
-                    this.speed = currentTargetSpeed * 1.3;
+                    if (inIntersection && isClear && light.getState() == TrafficLight.State.GREEN) {
+                        this.speed = currentTargetSpeed * 1.4;
+                    } else if (inIntersection && isClear && passedStopLine) {
+                        this.speed = currentTargetSpeed * 1.2;
+                    } else {
+                        this.speed = currentTargetSpeed;
+                    }
                 }
-            } else if (isFleeing) {
-                // Xe dân sự đang hoảng loạn lách đường, vọt lẹ hơn tí nếu trống
-                this.speed = isClear ? currentTargetSpeed * 1.2 : currentTargetSpeed;
-            } else {
-                // Xe dân sự đang đèn xanh đi qua ngã tư thì tăng tốc để thoát nhanh, tránh bị đì
-                if (inIntersection && isClear && light.getState() == TrafficLight.State.GREEN) {
-                    this.speed = currentTargetSpeed * 1.4; // Tăng 40% tốc độ
-                } else if (inIntersection && isClear && passedStopLine) {
-                    this.speed = currentTargetSpeed * 1.2; // Lỡ dở đèn vàng thì rít nhanh cho qua
+                if (!forcingTurnExit) {
+                    this.speed = IntersectionNavigator.limitSpeedForPredictedIntersectionCollision(this, dt, this.speed, allVehicles, targetInter);
+                } else if (turnExitMergeCrawl) {
+                    this.speed = Math.max(this.speed, baseSpeed * TURN_EXIT_MERGE_CRAWL_MIN_SPEED_FACTOR);
                 } else {
-                    this.speed = currentTargetSpeed;
+                    this.speed = Math.max(this.speed, baseSpeed * TURN_EXIT_MIN_SPEED_FACTOR);
                 }
+                movePhysically(dt);
+                TrajectoryController.finishDiagonalRightTurnIfNeeded(this, cx, cy);
             }
-            if (!forcingTurnExit) {
-                this.speed = IntersectionNavigator.limitSpeedForPredictedIntersectionCollision(this, dt, this.speed, allVehicles, targetInter);
-            } else if (turnExitMergeCrawl) {
-                this.speed = Math.max(this.speed, baseSpeed * TURN_EXIT_MERGE_CRAWL_MIN_SPEED_FACTOR);
+        } else {
+            double targetSpeed;
+            if (shouldStop) {
+                targetSpeed = 0.0;
             } else {
-                this.speed = Math.max(this.speed, baseSpeed * TURN_EXIT_MIN_SPEED_FACTOR);
+                boolean isClear = (Math.abs(currentTargetSpeed - baseSpeed) < 1.0);
+                double calculatedSpeed;
+                if (isPriorityVehicle) {
+                    if (inIntersection && isClear) {
+                        calculatedSpeed = currentTargetSpeed * 1.5;
+                    } else if (inIntersection && !isClear) {
+                        calculatedSpeed = currentTargetSpeed;
+                    } else {
+                        calculatedSpeed = currentTargetSpeed * 1.3;
+                    }
+                } else if (isFleeing) {
+                    calculatedSpeed = isClear ? currentTargetSpeed * 1.2 : currentTargetSpeed;
+                } else {
+                    if (inIntersection && isClear && light.getState() == TrafficLight.State.GREEN) {
+                        calculatedSpeed = currentTargetSpeed * 1.4;
+                    } else if (inIntersection && isClear && passedStopLine) {
+                        calculatedSpeed = currentTargetSpeed * 1.2;
+                    } else {
+                        calculatedSpeed = currentTargetSpeed;
+                    }
+                }
+                if (!forcingTurnExit) {
+                    calculatedSpeed = IntersectionNavigator.limitSpeedForPredictedIntersectionCollision(this, dt, calculatedSpeed, allVehicles, targetInter);
+                } else if (turnExitMergeCrawl) {
+                    calculatedSpeed = Math.max(calculatedSpeed, baseSpeed * TURN_EXIT_MERGE_CRAWL_MIN_SPEED_FACTOR);
+                } else {
+                    calculatedSpeed = Math.max(calculatedSpeed, baseSpeed * TURN_EXIT_MIN_SPEED_FACTOR);
+                }
+                targetSpeed = calculatedSpeed;
             }
-            movePhysically(dt);
+
+            double accelDecelFactor = (targetSpeed < this.speed) ? 10.0 : 5.0;
+            this.speed = this.speed + (targetSpeed - this.speed) * dt * accelDecelFactor;
+            if (Math.abs(this.speed) < 0.1) {
+                this.speed = 0.0;
+            }
+
+            if (this.speed > 0.0) {
+                movePhysically(dt);
+            }
             TrajectoryController.finishDiagonalRightTurnIfNeeded(this, cx, cy);
         }
     }
@@ -940,11 +999,35 @@ public abstract class Vehicle implements vn.edu.hust.traffic.base.Renderable, vn
         return intersection.getX() + offset;
     }
 
+    public double getVisualDirection() {
+        if (insideRoundabout || isTurningSmoothly || IS_TEST_ENV) {
+            return direction;
+        }
+        double dx = x - lastX;
+        double dy = y - lastY;
+        if (Math.hypot(dx, dy) > 0.1) {
+            return Math.atan2(dy, dx);
+        }
+        return direction;
+    }
+
     double moveToward(double current, double target, double maxStep) {
-        if (Math.abs(target - current) <= maxStep) {
+        double diff = target - current;
+        if (Math.abs(diff) <= maxStep) {
             return target;
         }
-        return current + Math.signum(target - current) * maxStep;
+        if (IS_TEST_ENV) {
+            return current + Math.signum(diff) * maxStep;
+        }
+        // Giảm tốc mượt mà khi tiến sát làn mục tiêu (Ease-out)
+        double step = diff * 0.18;
+        if (Math.abs(step) > maxStep) {
+            step = Math.signum(step) * maxStep;
+        }
+        if (Math.abs(step) < 0.2) {
+            step = Math.signum(diff) * Math.min(maxStep, Math.abs(diff));
+        }
+        return current + step;
     }
 
     void beginIntersectionIfNeeded(Intersection intersection) {

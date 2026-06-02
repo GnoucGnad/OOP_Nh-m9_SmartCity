@@ -25,8 +25,8 @@ public class RoadRenderer {
         switch (mapType) {
             case T_INTERSECTION -> drawTIntersection(gc, camera);
             case CROSS_INTERSECTION -> drawCrossIntersection(gc, camera);
-            case FIVE_WAY_INTERSECTION -> drawFiveWayIntersection(gc, camera);
-            case ROAD_NETWORK -> drawRoadNetwork(gc, camera);
+            case FIVE_WAY_INTERSECTION -> drawFiveWayIntersection(gc, camera, mapType);
+            case ROAD_NETWORK -> drawRoadNetwork(gc, camera, mapType);
         }
     }
 
@@ -50,11 +50,11 @@ public class RoadRenderer {
         drawThreeWayIntersectionAt(gc, camera, THREE_WAY_X, 600, 1400);
     }
 
-    private void drawFiveWayIntersection(GraphicsContext gc, Camera camera) {
-        drawFiveWayRoundaboutAt(gc, camera, 600.0, 300.0);
+    private void drawFiveWayIntersection(GraphicsContext gc, Camera camera, MapType mapType) {
+        drawFiveWayRoundaboutAt(gc, camera, 600.0, 300.0, mapType);
     }
 
-    private void drawFiveWayRoundaboutAt(GraphicsContext gc, Camera camera, double cx, double cy) {
+    private void drawFiveWayRoundaboutAt(GraphicsContext gc, Camera camera, double cx, double cy, MapType mapType) {
         double[] angles = {
             0,                  // 0: Đông
             -Math.PI / 2.0,     // 1: Bắc
@@ -78,24 +78,30 @@ public class RoadRenderer {
 
         // 3. Draw road lane markings and decorations
         for (double theta : angles) {
-            // White dashed lane dividers at offsets -53, -27, 27, 53
-            double[] laneLines = { -53, -27, 27, 53 };
-            for (double offsetVal : laneLines) {
-                double sx = cx + 180 * Math.cos(theta) - offsetVal * Math.sin(theta);
-                double sy = cy + 180 * Math.sin(theta) + offsetVal * Math.cos(theta);
-                double ex = cx + 600 * Math.cos(theta) - offsetVal * Math.sin(theta);
-                double ey = cy + 600 * Math.sin(theta) + offsetVal * Math.cos(theta);
-                strokeWorldLine(gc, camera, sx, sy, ex, ey, LANE, 1.0, true);
-            }
+            // Tránh vẽ trùng lặp vạch làn đường cho nhánh Tây và Nam khi đang ở trong sơ đồ mạng lưới đường
+            boolean skipBranch = (mapType == MapType.ROAD_NETWORK) &&
+                                 (Math.abs(theta - Math.PI) < 0.1 || Math.abs(theta - Math.PI / 2.0) < 0.1);
 
-            // Central solid double-yellow median line
-            double[] medianLines = { -2, 2 };
-            for (double offsetVal : medianLines) {
-                double sx = cx + 180 * Math.cos(theta) - offsetVal * Math.sin(theta);
-                double sy = cy + 180 * Math.sin(theta) + offsetVal * Math.cos(theta);
-                double ex = cx + 600 * Math.cos(theta) - offsetVal * Math.sin(theta);
-                double ey = cy + 600 * Math.sin(theta) + offsetVal * Math.cos(theta);
-                strokeWorldLine(gc, camera, sx, sy, ex, ey, MEDIAN, 2.0, false);
+            if (!skipBranch) {
+                // White dashed lane dividers at offsets -53, -27, 27, 53
+                double[] laneLines = { -53, -27, 27, 53 };
+                for (double offsetVal : laneLines) {
+                    double sx = cx + 180 * Math.cos(theta) - offsetVal * Math.sin(theta);
+                    double sy = cy + 180 * Math.sin(theta) + offsetVal * Math.cos(theta);
+                    double ex = cx + 600 * Math.cos(theta) - offsetVal * Math.sin(theta);
+                    double ey = cy + 600 * Math.sin(theta) + offsetVal * Math.cos(theta);
+                    strokeWorldLine(gc, camera, sx, sy, ex, ey, LANE, 1.0, true);
+                }
+
+                // Central solid double-yellow median line
+                double[] medianLines = { -2, 2 };
+                for (double offsetVal : medianLines) {
+                    double sx = cx + 180 * Math.cos(theta) - offsetVal * Math.sin(theta);
+                    double sy = cy + 180 * Math.sin(theta) + offsetVal * Math.cos(theta);
+                    double ex = cx + 600 * Math.cos(theta) - offsetVal * Math.sin(theta);
+                    double ey = cy + 600 * Math.sin(theta) + offsetVal * Math.cos(theta);
+                    strokeWorldLine(gc, camera, sx, sy, ex, ey, MEDIAN, 2.0, false);
+                }
             }
             
             // Zebra crossings (crosswalks) at distance 230
@@ -154,7 +160,7 @@ public class RoadRenderer {
         fillWorldCircle(gc, camera, cx, cy, 20, Color.web("#448844")); // central shrub
     }
 
-    private void drawRoadNetwork(GraphicsContext gc, Camera camera) {
+    private void drawRoadNetwork(GraphicsContext gc, Camera camera, MapType mapType) {
         // Draw horizontal roads: main at Y = BOTTOM_CROSS_Y, top at Y = TOP_CROSS_Y
         drawRoad(gc, camera, 800, BOTTOM_CROSS_Y, 1900, 160, 0);
         drawRoad(gc, camera, CROSS_X, TOP_CROSS_Y, 1100, 160, 0);
@@ -168,7 +174,7 @@ public class RoadRenderer {
         drawRoad(gc, camera, THREE_WAY_X, verticalCenterY, verticalLength, 160, 90);
 
         // Draw the 5-way roundabout at (THREE_WAY_X, TOP_CROSS_Y)
-        drawFiveWayRoundaboutAt(gc, camera, THREE_WAY_X, TOP_CROSS_Y);
+        drawFiveWayRoundaboutAt(gc, camera, THREE_WAY_X, TOP_CROSS_Y, mapType);
 
         drawNetworkTurnSlipRoads(gc, camera);
 
@@ -177,10 +183,10 @@ public class RoadRenderer {
         // Vertical lane markings for both cross intersections and T-junction
         drawVerticalIntersectionLaneMarkings(gc, camera, CROSS_X, BOTTOM_CROSS_Y, true, true);
         drawVerticalIntersectionLaneMarkings(gc, camera, CROSS_X, TOP_CROSS_Y, true, true);
-        drawVerticalIntersectionLaneMarkings(gc, camera, THREE_WAY_X, BOTTOM_CROSS_Y, true, false);
+        drawVerticalIntersectionLaneMarkings(gc, camera, THREE_WAY_X, BOTTOM_CROSS_Y, false, false);
 
         // Lane markings for the vertical road connecting three1 to roundabout
-        drawLaneMarkings(gc, camera, false, THREE_WAY_X, TOP_CROSS_Y + 190, BOTTOM_CROSS_Y - STOP_OFFSET);
+        drawLaneMarkings(gc, camera, false, THREE_WAY_X, TOP_CROSS_Y + 180, BOTTOM_CROSS_Y - STOP_OFFSET);
 
         // Arrows for both cross intersections and T-junction
         drawCrossIntersectionArrows(gc, camera, CROSS_X, BOTTOM_CROSS_Y);
@@ -254,16 +260,22 @@ public class RoadRenderer {
 
         // Top horizontal road (at Y = TOP_CROSS_Y)
         drawLaneMarkings(gc, camera, true, TOP_CROSS_Y, -150, CROSS_X - STOP_OFFSET);
-        drawLaneMarkings(gc, camera, true, TOP_CROSS_Y, CROSS_X + STOP_OFFSET, 850);
+        drawLaneMarkings(gc, camera, true, TOP_CROSS_Y, CROSS_X + STOP_OFFSET, THREE_WAY_X - 180);
     }
 
     private void drawVerticalIntersectionLaneMarkings(GraphicsContext gc, Camera camera,
             double centerX, double centerY, boolean includeNorth, boolean includeSouth) {
         if (includeNorth) {
-            drawLaneMarkings(gc, camera, false, centerX, TOP_CROSS_Y - 600, centerY - STOP_OFFSET);
+            // Tránh trùng lặp vạch làn đường phía Bắc của ngã tư dưới (đã vẽ từ ngã tư trên đi xuống)
+            boolean isBottomCrossNetwork = (centerY == BOTTOM_CROSS_Y && centerX == CROSS_X);
+            if (!isBottomCrossNetwork) {
+                drawLaneMarkings(gc, camera, false, centerX, TOP_CROSS_Y - 600, centerY - STOP_OFFSET);
+            }
         }
         if (includeSouth) {
-            drawLaneMarkings(gc, camera, false, centerX, centerY + STOP_OFFSET, 900);
+            // Trong sơ đồ mạng lưới, vạch dọc đi xuống từ ngã tư trên sẽ kết thúc khớp tại vạch dừng của ngã tư dưới
+            double toY = (centerY == TOP_CROSS_Y && centerX == CROSS_X) ? BOTTOM_CROSS_Y - STOP_OFFSET : 900;
+            drawLaneMarkings(gc, camera, false, centerX, centerY + STOP_OFFSET, toY);
         }
     }
 
@@ -498,11 +510,17 @@ public class RoadRenderer {
         gc.setLineWidth(Math.max(1.0, width * camera.getScale()));
         if (dashed) {
             gc.setLineDashes(14.0 * camera.getScale(), 12.0 * camera.getScale());
+            boolean isHorizontal = Math.abs(x2 - x1) >= Math.abs(y2 - y1);
+            double startCoord = isHorizontal ? x1 : y1;
+            double dashOffset = startCoord * camera.getScale();
+            gc.setLineDashOffset(dashOffset);
         } else {
             gc.setLineDashes(new double[0]);
+            gc.setLineDashOffset(0);
         }
         gc.strokeLine(p1.getX(), p1.getY(), p2.getX(), p2.getY());
         gc.setLineDashes(new double[0]);
+        gc.setLineDashOffset(0);
     }
 
     private void fillWorldCircle(GraphicsContext gc, Camera camera, double cx, double cy, double r, Color color) {

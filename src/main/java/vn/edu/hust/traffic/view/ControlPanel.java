@@ -34,7 +34,7 @@ public class ControlPanel extends VBox {
         setMinWidth(250);
         setPadding(new Insets(14));
         setSpacing(10);
-        setStyle("-fx-background-color: #20242a; -fx-border-color: #11151a; -fx-border-width: 0 0 0 1;");
+        setStyle("-fx-background-color: transparent;");
 
         Label title = new Label("CONTROL PANEL");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
@@ -211,11 +211,10 @@ public class ControlPanel extends VBox {
         HBox row1 = new HBox(7,
                 spawnButton("Car", "Car"),
                 spawnButton("Moto", "Motorbike"),
-                spawnButton("Bike", "Bicycle"));
+                spawnButton("Bus", "Bus"));
         HBox row2 = new HBox(7,
                 spawnButton("Ambu", "Ambulance"),
-                spawnButton("Fire", "FireTruck"),
-                spawnButton("Bus", "Bus"));
+                spawnButton("Fire", "FireTruck"));
         row1.setAlignment(Pos.CENTER);
         row2.setAlignment(Pos.CENTER);
         VBox box = new VBox(7, row1, row2);

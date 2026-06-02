@@ -44,7 +44,7 @@ public class VehicleRenderer {
 
         gc.save();
         gc.translate(p.getX(), p.getY());
-        gc.rotate(Math.toDegrees(vehicle.getDirection()));
+        gc.rotate(Math.toDegrees(vehicle.getVisualDirection()));
         gc.setEffect(new DropShadow(Math.max(2.0, 4.0 * scale), 1.5, 1.5, Color.color(0, 0, 0, 0.35)));
 
         if (settings.getRenderMode() == RenderMode.GRAPHIC) {
@@ -328,12 +328,12 @@ public class VehicleRenderer {
         // 1. Wheels (4 wheels)
         drawWheels(gc, width, height, 4);
 
-        // 2. Body Gradient
+        // 2. Body Gradient (Sạch sẽ, trắng sáng)
         LinearGradient bodyGrad = new LinearGradient(
             0, -height / 2.0, 0, height / 2.0, false, CycleMethod.NO_CYCLE,
             new Stop(0, Color.web("#ffffff")),
-            new Stop(0.6, Color.web("#f5f6fa")),
-            new Stop(1.0, Color.web("#dcdde1"))
+            new Stop(0.5, Color.web("#f8fafc")),
+            new Stop(1.0, Color.web("#f1f5f9"))
         );
         gc.setFill(bodyGrad);
         gc.fillRoundRect(-width / 2.0, -height / 2.0, width, height, 8, 8);
@@ -343,21 +343,31 @@ public class VehicleRenderer {
         gc.setLineWidth(1.0);
         gc.strokeRoundRect(-width / 2.0, -height / 2.0, width, height, 8, 8);
 
-        // Reflective red side stripes
+        // Vạch sọc màu đỏ phản quang (Red) đặc trưng của xe cứu thương
         gc.setFill(Color.web("#eb3b5a"));
         gc.fillRect(-width * 0.4, -height * 0.46, width * 0.75, height * 0.08);
         gc.fillRect(-width * 0.4, height * 0.38, width * 0.75, height * 0.08);
 
-        // 3. Red Cross symbol on the roof
+        // 3. Biểu tượng chữ thập đỏ trên nóc xe (phía sau) - tăng kích thước để nhìn rõ hơn
         gc.setFill(Color.web("#eb3b5a"));
-        double crossSize = height * 0.22;
+        double crossSize = height * 0.45; // Tăng kích thước để biểu tượng chữ thập hiển thị rõ nét
         double crossX = -width * 0.12;
         double crossY = 0;
-        double thickness = crossSize * 0.32;
-        // Horizontal bar
+        double thickness = Math.max(2.0, crossSize * 0.32);
+        // Thanh ngang
         gc.fillRect(crossX - crossSize / 2.0, crossY - thickness / 2.0, crossSize, thickness);
-        // Vertical bar
+        // Thanh dọc
         gc.fillRect(crossX - thickness / 2.0, crossY - crossSize / 2.0, thickness, crossSize);
+
+        // Biểu tượng chữ thập đỏ trên capo xe (phía trước) - tăng kích thước để dễ nhận dạng
+        double frontCrossSize = height * 0.30;
+        double frontCrossX = width * 0.36;
+        double frontCrossY = 0;
+        double frontThickness = Math.max(1.5, frontCrossSize * 0.32);
+        // Thanh ngang
+        gc.fillRect(frontCrossX - frontCrossSize / 2.0, frontCrossY - frontThickness / 2.0, frontCrossSize, frontThickness);
+        // Thanh dọc
+        gc.fillRect(frontCrossX - frontThickness / 2.0, frontCrossY - frontCrossSize / 2.0, frontThickness, frontCrossSize);
 
         // 4. Windows
         // Front windshield
@@ -726,7 +736,7 @@ public class VehicleRenderer {
 
     private Color colorFor(String type, boolean priority) {
         if ("ambulance".equals(type)) {
-            return priority ? Color.web("#f6f7f7") : Color.web("#f5b6c8");
+            return Color.WHITE;
         }
         if ("firetruck".equals(type)) {
             return Color.web("#d83a34");

@@ -6,6 +6,7 @@ import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
@@ -43,11 +44,21 @@ public class SimulationWindow extends Application {
         ControlPanel controlPanel = new ControlPanel(settings);
         configureControlPanel(controlPanel);
 
+        ScrollPane scrollPane = new ScrollPane(controlPanel);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setPrefWidth(270);
+        scrollPane.setMinWidth(250);
+        scrollPane.setStyle("-fx-background-color: #20242a; -fx-background: #20242a;");
+
         BorderPane root = new BorderPane();
         root.setCenter(simulationPane);
-        root.setRight(controlPanel);
+        root.setRight(scrollPane);
 
         Scene scene = new Scene(root, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        String css = getClass().getResource("/assets/style.css").toExternalForm();
+        scene.getStylesheets().add(css);
         configureInput(scene);
         configureMouse();
         resetSimulation();
