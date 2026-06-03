@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
+import vn.edu.hust.traffic.model.map.Intersection;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -36,6 +37,7 @@ public class TrafficLightRenderer {
         }
     }
 
+
     public OptionalInt pick(double screenX, double screenY, List<TrafficLight> lights, Camera camera,
             SimulationViewSettings settings) {
         for (LightVisual visual : buildVisuals(settings.getMapType(), lights.size())) {
@@ -45,7 +47,6 @@ public class TrafficLightRenderer {
             double height = visual.height() * scale;
             double pad = Math.max(8.0, 8.0 * scale);
 
-            // Check if left-turn light is clicked first (since it overlaps on the right)
             if (visual.index() < lights.size()) {
                 TrafficLight light = lights.get(visual.index());
                 if (hasMethod(light, "getLeftTurnState")) {
@@ -61,7 +62,6 @@ public class TrafficLightRenderer {
                 }
             }
 
-            // Check click on the main straight light
             if (screenX >= p.getX() - pad && screenX <= p.getX() + width + pad
                     && screenY >= p.getY() - pad && screenY <= p.getY() + height + pad) {
                 return OptionalInt.of(visual.index());
@@ -69,6 +69,8 @@ public class TrafficLightRenderer {
         }
         return OptionalInt.empty();
     }
+
+
 
     private void drawLight(GraphicsContext gc, TrafficLight light, LightVisual visual, Camera camera,
             SimulationViewSettings settings) {

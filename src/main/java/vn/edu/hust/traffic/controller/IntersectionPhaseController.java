@@ -30,11 +30,12 @@ import java.util.List;
  */
 public class IntersectionPhaseController {
 
-    // Base và max duration cho đèn xanh (giây)
-    private static final double BASE_STRAIGHT = 10.0;
-    private static final double MAX_STRAIGHT  = 30.0;
-    private static final double BASE_LEFT     =  5.0;
-    private static final double MAX_LEFT      = 15.0;
+    public static boolean isTestMode = false;
+
+    private static double getBaseStraight() { return isTestMode ? 10.0 : 30.0; }
+    private static double getMaxStraight() { return isTestMode ? 30.0 : 30.0; }
+    private static double getBaseLeft() { return isTestMode ? 5.0 : 30.0; }
+    private static double getMaxLeft() { return isTestMode ? 15.0 : 30.0; }
     private static final double DUR_YELLOW    =  3.0;
 
     private int currentPhase;
@@ -194,42 +195,42 @@ public class IntersectionPhaseController {
         switch (phase) {
             case 0: // LTR Xanh sớm
                 ltrS = State.GREEN; ltrL = State.GREEN;
-                duration = calculateDynamicDuration(vehicles, 0, 1, BASE_LEFT, MAX_LEFT);
+                duration = calculateDynamicDuration(vehicles, 0, 1, getBaseLeft(), getMaxLeft());
                 break;
             case 1: // LTR Trái vàng
                 ltrS = State.GREEN; ltrL = State.YELLOW; duration = DUR_YELLOW;
                 break;
             case 2: // Hai dòng đi thẳng ngang
                 ltrS = State.GREEN; rtlS = State.GREEN;
-                duration = calculateDynamicDuration(vehicles, -1, 0, BASE_STRAIGHT, MAX_STRAIGHT);
+                duration = calculateDynamicDuration(vehicles, -1, 0, getBaseStraight(), getMaxStraight());
                 break;
             case 3: // LTR Thẳng vàng
                 ltrS = State.YELLOW; rtlS = State.GREEN; duration = DUR_YELLOW;
                 break;
             case 4: // RTL Xanh toàn bộ (Đỏ muộn)
                 rtlS = State.GREEN; rtlL = State.GREEN;
-                duration = calculateDynamicDuration(vehicles, 1, 1, BASE_LEFT, MAX_LEFT);
+                duration = calculateDynamicDuration(vehicles, 1, 1, getBaseLeft(), getMaxLeft());
                 break;
             case 5: // RTL Thẳng + Trái vàng
                 rtlS = State.YELLOW; rtlL = State.YELLOW; duration = DUR_YELLOW;
                 break;
             case 6: // TTB Xanh sớm
                 ttbS = State.GREEN; ttbL = State.GREEN;
-                duration = calculateDynamicDuration(vehicles, 2, 1, BASE_LEFT, MAX_LEFT);
+                duration = calculateDynamicDuration(vehicles, 2, 1, getBaseLeft(), getMaxLeft());
                 break;
             case 7: // TTB Trái vàng
                 ttbS = State.GREEN; ttbL = State.YELLOW; duration = DUR_YELLOW;
                 break;
             case 8: // Hai dòng đi thẳng dọc
                 ttbS = State.GREEN; bttS = State.GREEN;
-                duration = calculateDynamicDuration(vehicles, -2, 0, BASE_STRAIGHT, MAX_STRAIGHT);
+                duration = calculateDynamicDuration(vehicles, -2, 0, getBaseStraight(), getMaxStraight());
                 break;
             case 9: // TTB Thẳng vàng
                 ttbS = State.YELLOW; bttS = State.GREEN; duration = DUR_YELLOW;
                 break;
             case 10: // BTT Xanh toàn bộ (Đỏ muộn)
                 bttS = State.GREEN; bttL = State.GREEN;
-                duration = calculateDynamicDuration(vehicles, 3, 1, BASE_LEFT, MAX_LEFT);
+                duration = calculateDynamicDuration(vehicles, 3, 1, getBaseLeft(), getMaxLeft());
                 break;
             case 11: // BTT Thẳng + Trái vàng
                 bttS = State.YELLOW; bttL = State.YELLOW; duration = DUR_YELLOW;
@@ -285,4 +286,5 @@ public class IntersectionPhaseController {
 
     public int getCurrentPhase() { return currentPhase; }
     public double getPhaseTimeLeft() { return phaseTimer; }
+    public List<TrafficLight> getLights() { return lights; }
 }

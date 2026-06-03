@@ -1,17 +1,18 @@
-package vn.edu.hust.traffic.model.vehicle;
+package vn.edu.hust.traffic.behavior;
 
+import vn.edu.hust.traffic.model.vehicle.Vehicle;
 import vn.edu.hust.traffic.model.map.Intersection;
 import vn.edu.hust.traffic.model.map.RoundaboutIntersection;
 import java.util.List;
 
 /**
- * Helper class for managing vehicle overtaking, bypassing turning vehicles, and yielding to priority vehicles.
+ * Lớp trợ giúp quản lý vượt xe, đi vòng qua xe đang rẽ, nhường đường cho xe ưu tiên.
  */
 public class OvertakeManager {
 
-    static void movePriorityToLeastBusyLaneIfRedQueueAhead(Vehicle v, List<Vehicle> allVehicles,
+    public static void movePriorityToLeastBusyLaneIfRedQueueAhead(Vehicle v, List<Vehicle> allVehicles,
             List<Intersection> intersections, Intersection intersection, int lightIdx, double dt) {
-        if (!v.isPriorityVehicle || v.passedStopLine || v.hasTurned || v.isTurningDiagonally || v.isTurningSmoothly) {
+        if (!v.isPriorityVehicle() || v.passedStopLine || v.hasTurned() || v.isTurningDiagonally || v.isTurningSmoothly) {
             return;
         }
         if (!hasStoppedQueueAhead(v, allVehicles, intersections, intersection, lightIdx)) {
@@ -22,10 +23,10 @@ public class OvertakeManager {
         v.moveTowardStandardLane(intersection, lightIdx, targetOffset, dt, 90.0);
     }
 
-    static boolean updateNormalOvertakeIfNeeded(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static boolean updateNormalOvertakeIfNeeded(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, double dt, boolean mustStopByLight, boolean isFleeing) {
-        if (v.isPriorityVehicle || isFleeing || mustStopByLight || v.passedStopLine || v.hasTurned
-                || v.isTurningDiagonally || v.isTurningSmoothly || v.distToStopLine < 120.0
+        if (v.isPriorityVehicle() || isFleeing || mustStopByLight || v.passedStopLine || v.hasTurned()
+                || v.isTurningDiagonally || v.isTurningSmoothly || v.getDistToStopLine() < 120.0
                 || hasRedLightStoppedVehicleAhead(v, allVehicles, intersections, intersection, lightIdx)
                 || hasPriorityVehicleNearSameIntersection(v, allVehicles, intersection, intersections)) {
             if (v.overtakingSlowVehicle) {
@@ -40,7 +41,7 @@ public class OvertakeManager {
                 return false;
             }
 
-            double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+            double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
             int currentLaneIndex = v.nearestStandardLaneIndex(currentOffset);
             int targetLaneIndex = chooseSafeOvertakeLane(v, allVehicles, intersections, intersection, lightIdx,
                     currentLaneIndex);
@@ -53,7 +54,7 @@ public class OvertakeManager {
             v.overtakeTargetLaneOffset = Math.min(Vehicle.STANDARD_LANE_OFFSETS[targetLaneIndex], v.roadCenterOffsetLimit());
             v.overtakeLightIdx = lightIdx;
             v.overtakeIntersectionId = intersection.getId();
-            v.overtakeVehicleId = slowVehicle.id;
+            v.overtakeVehicleId = slowVehicle.getId();
         }
 
         if (v.overtakeLightIdx != lightIdx || !intersection.getId().equals(v.overtakeIntersectionId)) {
@@ -72,30 +73,30 @@ public class OvertakeManager {
         return v.overtakingSlowVehicle;
     }
 
-    static Vehicle findSlowVehicleAheadForOvertake(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static Vehicle findSlowVehicleAheadForOvertake(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx) {
         Vehicle closest = null;
         double closestAhead = Double.MAX_VALUE;
-        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
         int currentLaneIndex = v.nearestStandardLaneIndex(currentOffset);
 
         for (Vehicle other : allVehicles) {
-            if (other == v || other.isPriorityVehicle) {
+            if (other == v || other.isPriorityVehicle()) {
                 continue;
             }
             if (!v.isSameApproachToIntersection(other, intersections, intersection, lightIdx)) {
                 continue;
             }
-            double otherOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, other.x, other.y));
+            double otherOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, other.getX(), other.getY()));
             if (v.nearestStandardLaneIndex(otherOffset) != currentLaneIndex) {
                 continue;
             }
 
-            double ahead = v.longitudinalDistanceAhead(lightIdx, other.x, other.y);
+            double ahead = v.longitudinalDistanceAhead(lightIdx, other.getX(), other.getY());
             if (ahead <= 0.0 || ahead > 170.0) {
                 continue;
             }
-            if (other.speed > v.baseSpeed * 0.72 && other.speed > v.speed - 12.0) {
+            if (other.getSpeed() > v.baseSpeed * 0.72 && other.getSpeed() > v.getSpeed() - 12.0) {
                 continue;
             }
             if (ahead < closestAhead) {
@@ -106,17 +107,17 @@ public class OvertakeManager {
         return closest;
     }
 
-    static boolean hasRedLightStoppedVehicleAhead(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static boolean hasRedLightStoppedVehicleAhead(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx) {
         for (Vehicle other : allVehicles) {
-            if (other == v || other.isPriorityVehicle) {
+            if (other == v || other.isPriorityVehicle()) {
                 continue;
             }
             if (!v.isSameApproachToIntersection(other, intersections, intersection, lightIdx)) {
                 continue;
             }
 
-            double ahead = v.longitudinalDistanceAhead(lightIdx, other.x, other.y);
+            double ahead = v.longitudinalDistanceAhead(lightIdx, other.getX(), other.getY());
             if (ahead > 0.0 && ahead < 500.0 && isVehicleStoppedByRedLight(other, intersections)) {
                 return true;
             }
@@ -124,8 +125,8 @@ public class OvertakeManager {
         return false;
     }
 
-    static boolean isVehicleStoppedByRedLight(Vehicle vehicle, List<Intersection> intersections) {
-        if (vehicle.speed >= 2.0 || vehicle.passedStopLine) {
+    public static boolean isVehicleStoppedByRedLight(Vehicle vehicle, List<Intersection> intersections) {
+        if (vehicle.getSpeed() >= 2.0 || vehicle.passedStopLine) {
             return false;
         }
 
@@ -134,23 +135,23 @@ public class OvertakeManager {
             return false;
         }
 
-        int lightIdx = vehicle.getLightIdx(vehicle.direction);
+        int lightIdx = vehicle.getLightIdx(vehicle.getDirection());
         vn.edu.hust.traffic.model.map.TrafficLight targetLight = null;
         if (target instanceof vn.edu.hust.traffic.model.map.CrossIntersection) {
             targetLight = target.getLights().get(lightIdx);
         } else if (target instanceof vn.edu.hust.traffic.model.map.ThreeWayIntersection) {
             targetLight = ((vn.edu.hust.traffic.model.map.ThreeWayIntersection) target)
-                    .getLightForDirection(vehicle.direction);
+                    .getLightForDirection(vehicle.getDirection());
         }
         if (targetLight == null) {
             return false;
         }
 
-        vn.edu.hust.traffic.model.map.TrafficLight.State state = targetLight.getStateForTurn(vehicle.turnIntention, vehicle.hasTurned);
+        vn.edu.hust.traffic.model.map.TrafficLight.State state = targetLight.getStateForTurn(vehicle.getTurnIntention(), vehicle.hasTurned());
         return state == vn.edu.hust.traffic.model.map.TrafficLight.State.RED || state == vn.edu.hust.traffic.model.map.TrafficLight.State.YELLOW;
     }
 
-    static int chooseSafeOvertakeLane(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static int chooseSafeOvertakeLane(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, int currentLaneIndex) {
         int bestIndex = -1;
         int bestCount = Integer.MAX_VALUE;
@@ -175,36 +176,36 @@ public class OvertakeManager {
         return bestIndex;
     }
 
-    static boolean hasPassedOvertakeTarget(Vehicle v, List<Vehicle> allVehicles, int lightIdx) {
+    public static boolean hasPassedOvertakeTarget(Vehicle v, List<Vehicle> allVehicles, int lightIdx) {
         if (v.overtakeVehicleId == null) {
             return true;
         }
         for (Vehicle other : allVehicles) {
-            if (!v.overtakeVehicleId.equals(other.id)) {
+            if (!v.overtakeVehicleId.equals(other.getId())) {
                 continue;
             }
-            double ahead = v.longitudinalDistanceAhead(lightIdx, other.x, other.y);
+            double ahead = v.longitudinalDistanceAhead(lightIdx, other.getX(), other.getY());
             return ahead < -(v.getHalfLength() + other.getHalfLength() + 30.0);
         }
         return true;
     }
 
-    static void tryReturnToOriginalLane(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static void tryReturnToOriginalLane(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, double dt) {
         if (!v.isLaneSafeForChange(allVehicles, intersections, intersection, lightIdx, v.overtakeOriginalLaneOffset)) {
             return;
         }
         v.moveTowardStandardLane(intersection, lightIdx, v.overtakeOriginalLaneOffset, dt, 70.0);
-        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
         if (Math.abs(currentOffset - v.overtakeOriginalLaneOffset) < 2.0) {
             resetOvertakeState(v);
         }
     }
 
-    static boolean hasPriorityVehicleNearSameIntersection(Vehicle v, List<Vehicle> allVehicles, Intersection intersection,
+    public static boolean hasPriorityVehicleNearSameIntersection(Vehicle v, List<Vehicle> allVehicles, Intersection intersection,
             List<Intersection> intersections) {
         for (Vehicle other : allVehicles) {
-            if (other != v && other.isPriorityVehicle
+            if (other != v && other.isPriorityVehicle()
                     && v.isPriorityApproachingSameIntersection(other, intersection, intersections)) {
                 return true;
             }
@@ -212,7 +213,7 @@ public class OvertakeManager {
         return false;
     }
 
-    static void resetOvertakeState(Vehicle v) {
+    public static void resetOvertakeState(Vehicle v) {
         v.overtakingSlowVehicle = false;
         v.overtakeOriginalLaneOffset = 0.0;
         v.overtakeTargetLaneOffset = 0.0;
@@ -221,7 +222,7 @@ public class OvertakeManager {
         v.overtakeVehicleId = null;
     }
 
-    static void resetYieldState(Vehicle v) {
+    public static void resetYieldState(Vehicle v) {
         v.yieldingToPriorityVehicle = false;
         v.yieldTargetLaneOffset = 0.0;
         v.yieldLightIdx = -1;
@@ -229,7 +230,7 @@ public class OvertakeManager {
         v.yieldPriorityVehicleId = null;
     }
 
-    static void resetTurningBypassState(Vehicle v) {
+    public static void resetTurningBypassState(Vehicle v) {
         v.bypassingTurningVehicle = false;
         v.bypassTargetLaneOffset = 0.0;
         v.bypassLightIdx = -1;
@@ -237,10 +238,10 @@ public class OvertakeManager {
         v.bypassVehicleId = null;
     }
 
-    static boolean updateTurningVehicleBypassIfNeeded(Vehicle v, List<Vehicle> allVehicles,
+    public static boolean updateTurningVehicleBypassIfNeeded(Vehicle v, List<Vehicle> allVehicles,
             List<Intersection> intersections, Intersection intersection, int lightIdx, double dt) {
-        boolean insideIntersection = intersection != null && v.isInsideStandardIntersection(intersection, v.x, v.y);
-        boolean canBypassInCurrentPosition = v.isPriorityVehicle
+        boolean insideIntersection = intersection != null && v.isInsideStandardIntersection(intersection, v.getX(), v.getY());
+        boolean canBypassInCurrentPosition = v.isPriorityVehicle()
                 ? (v.passedStopLine || insideIntersection)
                 : (v.passedStopLine && insideIntersection);
         if (intersection == null || intersection instanceof RoundaboutIntersection
@@ -254,7 +255,7 @@ public class OvertakeManager {
                 && lightIdx == v.bypassLightIdx
                 && intersection.getId().equals(v.bypassIntersectionId)) {
             v.moveTowardStandardLane(intersection, lightIdx, v.bypassTargetLaneOffset, dt, 115.0);
-            if (Math.abs(Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y))
+            if (Math.abs(Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()))
                     - v.bypassTargetLaneOffset) < 2.0) {
                 resetTurningBypassState(v);
             }
@@ -268,8 +269,8 @@ public class OvertakeManager {
         if (!v.bypassingTurningVehicle
                 || lightIdx != v.bypassLightIdx
                 || !intersection.getId().equals(v.bypassIntersectionId)
-                || !blocker.id.equals(v.bypassVehicleId)) {
-            double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+                || !blocker.getId().equals(v.bypassVehicleId)) {
+            double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
             int currentLaneIndex = v.nearestStandardLaneIndex(currentOffset);
             int targetLaneIndex = chooseTurningBypassLaneIndex(v, allVehicles, intersections, intersection,
                     lightIdx, currentLaneIndex, blocker);
@@ -283,37 +284,37 @@ public class OvertakeManager {
                     v.roadCenterOffsetLimit());
             v.bypassLightIdx = lightIdx;
             v.bypassIntersectionId = intersection.getId();
-            v.bypassVehicleId = blocker.id;
+            v.bypassVehicleId = blocker.getId();
         }
 
         v.moveTowardStandardLane(intersection, lightIdx, v.bypassTargetLaneOffset, dt, 115.0);
         return true;
     }
 
-    static Vehicle findTurningVehicleBlockingCurrentLane(Vehicle v, List<Vehicle> allVehicles,
+    public static Vehicle findTurningVehicleBlockingCurrentLane(Vehicle v, List<Vehicle> allVehicles,
             Intersection intersection, int lightIdx) {
         Vehicle closest = null;
         double closestAhead = Double.MAX_VALUE;
-        double dirX = Math.cos(v.direction);
-        double dirY = Math.sin(v.direction);
-        double laneThreshold = Math.max(20.0, v.height + 10.0);
+        double dirX = Math.cos(v.getDirection());
+        double dirY = Math.sin(v.getDirection());
+        double laneThreshold = Math.max(20.0, v.getHeight() + 10.0);
         for (Vehicle other : allVehicles) {
-            if (other == v || other.isPriorityVehicle) {
+            if (other == v || other.isPriorityVehicle()) {
                 continue;
             }
-            if (!v.isPriorityVehicle
+            if (!v.isPriorityVehicle()
                     && other.originalLightIdx == v.originalLightIdx
-                    && other.turnIntention == v.turnIntention) {
+                    && other.getTurnIntention() == v.getTurnIntention()) {
                 continue;
             }
-            boolean turningInIntersection = (other.isTurningSmoothly || other.isTurningDiagonally || other.hasTurned)
-                    && v.isInsideStandardIntersection(intersection, other.x, other.y);
+            boolean turningInIntersection = (other.isTurningSmoothly || other.isTurningDiagonally || other.hasTurned())
+                    && v.isInsideStandardIntersection(intersection, other.getX(), other.getY());
             if (!turningInIntersection) {
                 continue;
             }
 
-            double relX = other.x - v.x;
-            double relY = other.y - v.y;
+            double relX = other.getX() - v.getX();
+            double relY = other.getY() - v.getY();
             double ahead = relX * dirX + relY * dirY;
             if (ahead <= 0.0 || ahead > 150.0) {
                 continue;
@@ -322,8 +323,8 @@ public class OvertakeManager {
             if (lateral > laneThreshold) {
                 continue;
             }
-            double offset = Math.abs(v.standardLaneOffset(intersection, lightIdx, other.x, other.y));
-            double myOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+            double offset = Math.abs(v.standardLaneOffset(intersection, lightIdx, other.getX(), other.getY()));
+            double myOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
             if (v.nearestStandardLaneIndex(offset) != v.nearestStandardLaneIndex(myOffset)) {
                 continue;
             }
@@ -335,7 +336,7 @@ public class OvertakeManager {
         return closest;
     }
 
-    static int chooseTurningBypassLaneIndex(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static int chooseTurningBypassLaneIndex(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, int currentLaneIndex, Vehicle blocker) {
         int bestIndex = -1;
         int bestCount = Integer.MAX_VALUE;
@@ -357,75 +358,75 @@ public class OvertakeManager {
         return bestIndex;
     }
 
-    static boolean isTurningBypassLaneSafe(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static boolean isTurningBypassLaneSafe(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, double targetOffset, Vehicle blocker) {
         if (!v.isLaneSafeForChange(allVehicles, intersections, intersection, lightIdx, targetOffset)) {
             return false;
         }
 
         double targetLaneCoord = v.standardLaneCoordinate(intersection, lightIdx, targetOffset);
-        double myLongitudinal = v.longitudinalCoordinate(lightIdx, v.x, v.y);
+        double myLongitudinal = v.longitudinalCoordinate(lightIdx, v.getX(), v.getY());
         for (Vehicle other : allVehicles) {
             if (other == v || other == blocker) {
                 continue;
             }
-            if (!v.isInsideStandardIntersectionGuardZone(intersection, other.x, other.y, other.x, other.y)
+            if (!v.isInsideStandardIntersectionGuardZone(intersection, other.getX(), other.getY(), other.getX(), other.getY())
                     && !v.isSameApproachToIntersection(other, intersections, intersection, lightIdx)) {
                 continue;
             }
 
-            double otherLongitudinal = v.longitudinalCoordinate(lightIdx, other.x, other.y);
+            double otherLongitudinal = v.longitudinalCoordinate(lightIdx, other.getX(), other.getY());
             double relative = v.signedLongitudinalDelta(lightIdx, myLongitudinal, otherLongitudinal);
             if (relative < -70.0 || relative > 180.0) {
                 continue;
             }
 
             double lateral = lightIdx < 2
-                    ? Math.abs(other.y - targetLaneCoord)
-                    : Math.abs(other.x - targetLaneCoord);
-            if (lateral < Math.max(18.0, (v.height + other.height) * 0.65)) {
+                    ? Math.abs(other.getY() - targetLaneCoord)
+                    : Math.abs(other.getX() - targetLaneCoord);
+            if (lateral < Math.max(18.0, (v.getHeight() + other.getHeight()) * 0.65)) {
                 return false;
             }
         }
         return true;
     }
 
-    static boolean isActiveTurningBypassBlocker(Vehicle v, Vehicle other, Intersection intersection, int lightIdx) {
+    public static boolean isActiveTurningBypassBlocker(Vehicle v, Vehicle other, Intersection intersection, int lightIdx) {
         return v.bypassingTurningVehicle
                 && lightIdx == v.bypassLightIdx
                 && intersection.getId().equals(v.bypassIntersectionId)
-                && other.id.equals(v.bypassVehicleId);
+                && other.getId().equals(v.bypassVehicleId);
     }
 
-    static boolean hasStoppedQueueAhead(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static boolean hasStoppedQueueAhead(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx) {
         for (Vehicle other : allVehicles) {
-            if (other == v || other.isPriorityVehicle) {
+            if (other == v || other.isPriorityVehicle()) {
                 continue;
             }
             if (!v.isSameApproachToIntersection(other, intersections, intersection, lightIdx)) {
                 continue;
             }
 
-            double ahead = v.longitudinalDistanceAhead(lightIdx, other.x, other.y);
-            if (ahead > 0.0 && ahead < 420.0 && other.speed < 2.0 && !other.passedStopLine) {
+            double ahead = v.longitudinalDistanceAhead(lightIdx, other.getX(), other.getY());
+            if (ahead > 0.0 && ahead < 420.0 && other.getSpeed() < 2.0 && !other.passedStopLine) {
                 return true;
             }
         }
         return false;
     }
 
-    static double leastBusyLaneOffset(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static double leastBusyLaneOffset(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx) {
         return leastBusyLaneOffset(v, allVehicles, intersections, intersection, lightIdx, -1);
     }
 
-    static double stableYieldLaneOffset(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static double stableYieldLaneOffset(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, Vehicle priorityVehicle) {
         if (v.yieldingToPriorityVehicle
                 && lightIdx == v.yieldLightIdx
                 && intersection.getId().equals(v.yieldIntersectionId)
-                && priorityVehicle.id.equals(v.yieldPriorityVehicleId)) {
+                && priorityVehicle.getId().equals(v.yieldPriorityVehicleId)) {
             return v.yieldTargetLaneOffset;
         }
 
@@ -433,25 +434,25 @@ public class OvertakeManager {
                 priorityVehicle);
         if (targetLaneIndex < 0) {
             resetYieldState(v);
-            return Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+            return Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
         }
 
         v.yieldingToPriorityVehicle = true;
         v.yieldTargetLaneOffset = Math.min(Vehicle.STANDARD_LANE_OFFSETS[targetLaneIndex], v.roadCenterOffsetLimit());
         v.yieldLightIdx = lightIdx;
         v.yieldIntersectionId = intersection.getId();
-        v.yieldPriorityVehicleId = priorityVehicle.id;
+        v.yieldPriorityVehicleId = priorityVehicle.getId();
         return v.yieldTargetLaneOffset;
     }
 
-    static boolean continueYieldLaneChangeToTargetIfNeeded(Vehicle v, List<Vehicle> allVehicles,
+    public static boolean continueYieldLaneChangeToTargetIfNeeded(Vehicle v, List<Vehicle> allVehicles,
             List<Intersection> intersections, Intersection intersection, int lightIdx, double dt) {
         if (!v.yieldingToPriorityVehicle || intersection == null || intersection instanceof RoundaboutIntersection
                 || lightIdx != v.yieldLightIdx || !intersection.getId().equals(v.yieldIntersectionId)) {
             return false;
         }
 
-        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
         if (Math.abs(currentOffset - v.yieldTargetLaneOffset) <= 1.5) {
             resetYieldState(v);
             return false;
@@ -463,12 +464,12 @@ public class OvertakeManager {
         return true;
     }
 
-    static int chooseAdjacentYieldLaneIndex(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static int chooseAdjacentYieldLaneIndex(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, Vehicle priorityVehicle) {
-        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
         int currentLaneIndex = v.nearestStandardLaneIndex(currentOffset);
         double priorityOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx,
-                priorityVehicle.x, priorityVehicle.y));
+                priorityVehicle.getX(), priorityVehicle.getY()));
         int priorityLaneIndex = v.nearestStandardLaneIndex(priorityOffset);
 
         int bestIndex = -1;
@@ -494,7 +495,7 @@ public class OvertakeManager {
         return bestIndex;
     }
 
-    static double leastBusyLaneOffset(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static double leastBusyLaneOffset(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, int avoidLaneIndex) {
         int[] counts = new int[Vehicle.STANDARD_LANE_OFFSETS.length];
         double[] nearestDistances = new double[Vehicle.STANDARD_LANE_OFFSETS.length];
@@ -510,13 +511,13 @@ public class OvertakeManager {
                 continue;
             }
 
-            double ahead = v.longitudinalDistanceAhead(lightIdx, other.x, other.y);
+            double ahead = v.longitudinalDistanceAhead(lightIdx, other.getX(), other.getY());
             if (ahead < -20.0 || ahead > 500.0) {
                 continue;
             }
 
-            double offset = v.standardLaneOffset(intersection, lightIdx, other.x, other.y);
-            if (Math.abs(offset) > Vehicle.ROAD_HALF_WIDTH + other.width / 2.0) {
+            double offset = v.standardLaneOffset(intersection, lightIdx, other.getX(), other.getY());
+            if (Math.abs(offset) > Vehicle.ROAD_HALF_WIDTH + other.getWidth() / 2.0) {
                 continue;
             }
 
@@ -525,7 +526,7 @@ public class OvertakeManager {
             nearestDistances[laneIndex] = Math.min(nearestDistances[laneIndex], Math.max(0.0, ahead));
         }
 
-        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
         int bestIndex = 0;
         for (int i = 1; i < Vehicle.STANDARD_LANE_OFFSETS.length; i++) {
             if (counts[i] < counts[bestIndex]) {
@@ -543,17 +544,17 @@ public class OvertakeManager {
         return Math.min(Vehicle.STANDARD_LANE_OFFSETS[bestIndex], v.roadCenterOffsetLimit());
     }
 
-    static boolean isBlockingPriorityLane(Vehicle v, Intersection intersection, int lightIdx, Vehicle priorityVehicle) {
-        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
+    public static boolean isBlockingPriorityLane(Vehicle v, Intersection intersection, int lightIdx, Vehicle priorityVehicle) {
+        double currentOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
         double priorityOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx,
-                priorityVehicle.x, priorityVehicle.y));
+                priorityVehicle.getX(), priorityVehicle.getY()));
         return v.nearestStandardLaneIndex(currentOffset) == v.nearestStandardLaneIndex(priorityOffset);
     }
 
-    static boolean isContinuingYieldForPriority(Vehicle v, Intersection intersection, int lightIdx, Vehicle priorityVehicle) {
+    public static boolean isContinuingYieldForPriority(Vehicle v, Intersection intersection, int lightIdx, Vehicle priorityVehicle) {
         return v.yieldingToPriorityVehicle
                 && lightIdx == v.yieldLightIdx
                 && intersection.getId().equals(v.yieldIntersectionId)
-                && priorityVehicle.id.equals(v.yieldPriorityVehicleId);
+                && priorityVehicle.getId().equals(v.yieldPriorityVehicleId);
     }
 }

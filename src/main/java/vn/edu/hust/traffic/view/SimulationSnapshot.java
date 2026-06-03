@@ -1,5 +1,7 @@
 package vn.edu.hust.traffic.view;
 
+package vn.edu.hust.traffic.view;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

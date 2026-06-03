@@ -1,43 +1,44 @@
-package vn.edu.hust.traffic.model.vehicle;
+package vn.edu.hust.traffic.behavior;
 
+import vn.edu.hust.traffic.model.vehicle.Vehicle;
 import vn.edu.hust.traffic.model.map.Intersection;
 import vn.edu.hust.traffic.model.map.RoundaboutIntersection;
 import vn.edu.hust.traffic.model.map.TrafficLight;
 import java.util.List;
 
 /**
- * Helper class for managing intersection entry priorities, collision lookahead, and right-of-way logic.
+ * Lớp trợ giúp quản lý độ ưu tiên khi vào ngã tư, dự đoán va chạm và quyền đi trước.
  */
 public class IntersectionNavigator {
 
-    static boolean hasBlockedDiagonalRightTurnEntry(Vehicle v, List<Vehicle> allVehicles,
+    public static boolean hasBlockedDiagonalRightTurnEntry(Vehicle v, List<Vehicle> allVehicles,
             List<Intersection> intersections, Intersection intersection, int lightIdx) {
         if (intersection == null || intersection instanceof RoundaboutIntersection) {
             return false;
         }
 
-        double myOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.x, v.y));
-        double laneThreshold = Math.max(18.0, v.height + 8.0);
-        double turnDirection = diagonalRightTurnDirectionForEntry(v.direction, lightIdx);
+        double myOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, v.getX(), v.getY()));
+        double laneThreshold = Math.max(18.0, v.getHeight() + 8.0);
+        double turnDirection = diagonalRightTurnDirectionForEntry(v.getDirection(), lightIdx);
         double turnDirX = Math.cos(turnDirection);
         double turnDirY = Math.sin(turnDirection);
         double turnPathLength = diagonalRightTurnRemainingDistance(v, intersection, lightIdx, turnDirX, turnDirY);
-        double pathLaneThreshold = Math.max(22.0, v.height + 16.0);
+        double pathLaneThreshold = Math.max(22.0, v.getHeight() + 16.0);
         for (Vehicle other : allVehicles) {
             if (other == v || other.insideRoundabout || other.exitedRoundabout) {
                 continue;
             }
             Intersection otherTarget = other.getTargetIntersection(intersections);
             boolean nearIntersection = v.isInsideStandardIntersectionGuardZone(intersection,
-                    other.x, other.y, other.x, other.y);
+                    other.getX(), other.getY(), other.getX(), other.getY());
             if (otherTarget != intersection
                     && !intersection.getId().equals(other.activeIntersectionId)
                     && !nearIntersection) {
                 continue;
             }
 
-            double relX = other.x - v.x;
-            double relY = other.y - v.y;
+            double relX = other.getX() - v.getX();
+            double relY = other.getY() - v.getY();
             double turnPathAhead = relX * turnDirX + relY * turnDirY;
             double turnPathLateral = Math.abs(relX * turnDirY - relY * turnDirX);
             double turnPathHardGap = v.getHalfLength() + other.getHalfLength() + 18.0;
@@ -45,7 +46,7 @@ public class IntersectionNavigator {
                     && turnPathAhead < turnPathLength + other.getHalfLength() + 55.0
                     && turnPathLateral < pathLaneThreshold;
             if (occupiesTurnPath
-                    && (other.speed < v.baseSpeed * 0.65
+                    && (other.getSpeed() < v.baseSpeed * 0.65
                             || turnPathAhead < turnPathHardGap
                             || other.passedStopLine
                             || other.isTurningSmoothly
@@ -53,26 +54,26 @@ public class IntersectionNavigator {
                 return true;
             }
 
-            if (other.getLightIdx(other.direction) != lightIdx) {
+            if (other.getLightIdx(other.getDirection()) != lightIdx) {
                 continue;
             }
 
-            double otherOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, other.x, other.y));
+            double otherOffset = Math.abs(v.standardLaneOffset(intersection, lightIdx, other.getX(), other.getY()));
             if (Math.abs(otherOffset - myOffset) > laneThreshold) {
                 continue;
             }
 
-            double ahead = v.longitudinalDistanceAhead(lightIdx, other.x, other.y);
+            double ahead = v.longitudinalDistanceAhead(lightIdx, other.getX(), other.getY());
             double hardGap = v.getHalfLength() + other.getHalfLength() + 16.0;
             if (ahead > -other.getHalfLength() && ahead < 150.0
-                    && (other.speed < v.baseSpeed * 0.45 || ahead < hardGap)) {
+                    && (other.getSpeed() < v.baseSpeed * 0.45 || ahead < hardGap)) {
                 return true;
             }
         }
         return false;
     }
 
-    static double diagonalRightTurnDirectionForEntry(double currentDirection, int lightIdx) {
+    public static double diagonalRightTurnDirectionForEntry(double currentDirection, int lightIdx) {
         if (lightIdx == 0) {
             return Math.PI / 4.0;
         }
@@ -88,24 +89,24 @@ public class IntersectionNavigator {
         return currentDirection;
     }
 
-    static double diagonalRightTurnRemainingDistance(Vehicle v, Intersection intersection, int lightIdx,
+    public static double diagonalRightTurnRemainingDistance(Vehicle v, Intersection intersection, int lightIdx,
             double dirX, double dirY) {
         double cx = intersection.getX();
         double cy = intersection.getY();
         double endLane = 65.0;
         if (lightIdx == 0) {
-            return Math.max(40.0, (cx - endLane - v.x) / Math.max(0.01, dirX));
+            return Math.max(40.0, (cx - endLane - v.getX()) / Math.max(0.01, dirX));
         } else if (lightIdx == 1) {
-            return Math.max(40.0, (cx + endLane - v.x) / Math.min(-0.01, dirX));
+            return Math.max(40.0, (cx + endLane - v.getX()) / Math.min(-0.01, dirX));
         } else if (lightIdx == 2) {
-            return Math.max(40.0, (cy - endLane - v.y) / Math.max(0.01, dirY));
+            return Math.max(40.0, (cy - endLane - v.getY()) / Math.max(0.01, dirY));
         } else if (lightIdx == 3) {
-            return Math.max(40.0, (cy + endLane - v.y) / Math.min(-0.01, dirY));
+            return Math.max(40.0, (cy + endLane - v.getY()) / Math.min(-0.01, dirY));
         }
         return 40.0;
     }
 
-    static boolean hasUnsafeIntersectionEntryConflict(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
+    public static boolean hasUnsafeIntersectionEntryConflict(Vehicle v, List<Vehicle> allVehicles, List<Intersection> intersections,
             Intersection intersection, int lightIdx, TrafficLight.State myEffectiveLight) {
         if (intersection == null || intersection instanceof RoundaboutIntersection) {
             return false;
@@ -119,7 +120,7 @@ public class IntersectionNavigator {
                 continue;
             }
 
-            int otherLightIdx = other.getLightIdx(other.direction);
+            int otherLightIdx = other.getLightIdx(other.getDirection());
             boolean eitherTurning = v.isTurningSmoothly || v.isTurningDiagonally 
                     || other.isTurningSmoothly || other.isTurningDiagonally;
             boolean sameAxis = !eitherTurning && ((lightIdx < 2 && otherLightIdx < 2) || (lightIdx >= 2 && otherLightIdx >= 2));
@@ -128,19 +129,19 @@ public class IntersectionNavigator {
             }
 
             TrafficLight.State otherEffectiveLight = v.effectiveLightForVehicle(other, intersections, otherLightIdx);
-            if (!other.isPriorityVehicle
+            if (!other.isPriorityVehicle()
                     && !other.passedStopLine
-                    && other.speed < 0.5
+                    && other.getSpeed() < 0.5
                     && (otherEffectiveLight == TrafficLight.State.RED
                             || otherEffectiveLight == TrafficLight.State.YELLOW)) {
                 continue;
             }
 
-            double conflictX = lightIdx < 2 ? other.x : v.x;
-            double conflictY = lightIdx < 2 ? v.y : other.y;
-            double myDistance = distanceToConflictPoint(lightIdx, conflictX, conflictY, v.x, v.y, v.getHalfLength());
+            double conflictX = lightIdx < 2 ? other.getX() : v.getX();
+            double conflictY = lightIdx < 2 ? v.getY() : other.getY();
+            double myDistance = distanceToConflictPoint(lightIdx, conflictX, conflictY, v.getX(), v.getY(), v.getHalfLength());
             double otherDistance = distanceToConflictPoint(otherLightIdx, conflictX, conflictY,
-                    other.x, other.y, other.getHalfLength());
+                    other.getX(), other.getY(), other.getHalfLength());
             if (myDistance < -10.0 || myDistance > Vehicle.INTERSECTION_ENTRY_CONFLICT_LOOKAHEAD) {
                 continue;
             }
@@ -151,15 +152,15 @@ public class IntersectionNavigator {
             boolean otherInside = other.passedStopLine
                     || other.isTurningSmoothly
                     || other.isTurningDiagonally
-                    || v.isInsideStandardIntersection(intersection, other.x, other.y);
+                    || v.isInsideStandardIntersection(intersection, other.getX(), other.getY());
             boolean mustYield = shouldYieldForEntryConflict(v, other, intersection, myEffectiveLight,
                     otherEffectiveLight, otherInside);
             if (!mustYield) {
                 continue;
             }
 
-            double myConflictSpeed = Math.max(1.0, Math.max(v.speed, v.baseSpeed * 0.45));
-            double otherConflictSpeed = Math.max(1.0, Math.max(other.speed, other.baseSpeed * 0.35));
+            double myConflictSpeed = Math.max(1.0, Math.max(v.getSpeed(), v.baseSpeed * 0.45));
+            double otherConflictSpeed = Math.max(1.0, Math.max(other.getSpeed(), other.baseSpeed * 0.35));
             double myTime = Math.max(0.0, myDistance) / myConflictSpeed;
             double otherTime = Math.max(0.0, otherDistance) / otherConflictSpeed;
             boolean occupiedConflict = otherInside
@@ -173,15 +174,15 @@ public class IntersectionNavigator {
         return false;
     }
 
-    static boolean shouldYieldForEntryConflict(Vehicle v, Vehicle other, Intersection intersection,
+    public static boolean shouldYieldForEntryConflict(Vehicle v, Vehicle other, Intersection intersection,
             TrafficLight.State myEffectiveLight, TrafficLight.State otherEffectiveLight, boolean otherInside) {
         if (otherInside) {
             return true;
         }
-        if (!v.isPriorityVehicle && other.isPriorityVehicle) {
+        if (!v.isPriorityVehicle() && other.isPriorityVehicle()) {
             return true;
         }
-        if (v.isPriorityVehicle && !other.isPriorityVehicle) {
+        if (v.isPriorityVehicle() && !other.isPriorityVehicle()) {
             return false;
         }
 
@@ -196,19 +197,19 @@ public class IntersectionNavigator {
                 && v.activeIntersectionEntryOrder != other.activeIntersectionEntryOrder) {
             return v.activeIntersectionEntryOrder > other.activeIntersectionEntryOrder;
         }
-        return v.id.compareTo(other.id) > 0;
+        return v.getId().compareTo(other.getId()) > 0;
     }
 
-    static boolean isRelevantToStandardIntersectionConflict(Vehicle v, Vehicle other, List<Intersection> intersections,
+    public static boolean isRelevantToStandardIntersectionConflict(Vehicle v, Vehicle other, List<Intersection> intersections,
             Intersection intersection) {
         if (intersection.getId().equals(other.activeIntersectionId)
-                || v.isInsideStandardIntersectionGuardZone(intersection, other.x, other.y, other.x, other.y)) {
+                || v.isInsideStandardIntersectionGuardZone(intersection, other.getX(), other.getY(), other.getX(), other.getY())) {
             return true;
         }
         return other.getTargetIntersection(intersections) == intersection;
     }
 
-    static double distanceToConflictPoint(int lightIdx, double conflictX, double conflictY,
+    public static double distanceToConflictPoint(int lightIdx, double conflictX, double conflictY,
             double vehicleX, double vehicleY, double halfLength) {
         if (lightIdx == 0) {
             return conflictX - (vehicleX + halfLength);
@@ -222,15 +223,15 @@ public class IntersectionNavigator {
         return (vehicleY - halfLength) - conflictY;
     }
 
-    static double limitSpeedForPredictedIntersectionCollision(Vehicle v, double dt, double proposedSpeed,
+    public static double limitSpeedForPredictedIntersectionCollision(Vehicle v, double dt, double proposedSpeed,
             List<Vehicle> allVehicles, Intersection intersection) {
         if (proposedSpeed <= 0.0 || intersection instanceof RoundaboutIntersection) {
             return proposedSpeed;
         }
 
-        double nextX = v.x + Math.cos(v.direction) * proposedSpeed * dt;
-        double nextY = v.y + Math.sin(v.direction) * proposedSpeed * dt;
-        if (!v.isInsideStandardIntersectionGuardZone(intersection, v.x, v.y, nextX, nextY)) {
+        double nextX = v.getX() + Math.cos(v.getDirection()) * proposedSpeed * dt;
+        double nextY = v.getY() + Math.sin(v.getDirection()) * proposedSpeed * dt;
+        if (!v.isInsideStandardIntersectionGuardZone(intersection, v.getX(), v.getY(), nextX, nextY)) {
             return proposedSpeed;
         }
 
@@ -239,18 +240,18 @@ public class IntersectionNavigator {
             if (other == v) {
                 continue;
             }
-            if (OvertakeManager.isActiveTurningBypassBlocker(v, other, intersection, v.getLightIdx(v.direction))) {
+            if (OvertakeManager.isActiveTurningBypassBlocker(v, other, intersection, v.getLightIdx(v.getDirection()))) {
                 continue;
             }
 
-            double otherNextX = other.x + Math.cos(other.direction) * Math.max(0.0, other.speed) * dt;
-            double otherNextY = other.y + Math.sin(other.direction) * Math.max(0.0, other.speed) * dt;
-            if (!v.isInsideStandardIntersectionGuardZone(intersection, other.x, other.y, otherNextX, otherNextY)) {
+            double otherNextX = other.getX() + Math.cos(other.getDirection()) * Math.max(0.0, other.getSpeed()) * dt;
+            double otherNextY = other.getY() + Math.sin(other.getDirection()) * Math.max(0.0, other.getSpeed()) * dt;
+            if (!v.isInsideStandardIntersectionGuardZone(intersection, other.getX(), other.getY(), otherNextX, otherNextY)) {
                 continue;
             }
 
-            int lightIdx = v.getLightIdx(v.direction);
-            int otherLightIdx = other.getLightIdx(other.direction);
+            int lightIdx = v.getLightIdx(v.getDirection());
+            int otherLightIdx = other.getLightIdx(other.getDirection());
             boolean eitherTurning = v.isTurningSmoothly || v.isTurningDiagonally 
                     || other.isTurningSmoothly || other.isTurningDiagonally;
             boolean sameAxis = !eitherTurning && ((lightIdx < 2 && otherLightIdx < 2) || (lightIdx >= 2 && otherLightIdx >= 2));
@@ -259,10 +260,10 @@ public class IntersectionNavigator {
             }
 
             double collisionGap = Math.max(24.0,
-                    (v.getHalfLength() + other.getHalfLength()) * 0.9 + Math.max(v.height, other.height) * 0.25);
-            double currentDistance = Math.hypot(v.x - other.x, v.y - other.y);
+                    (v.getHalfLength() + other.getHalfLength()) * 0.9 + Math.max(v.getHeight(), other.getHeight()) * 0.25);
+            double currentDistance = Math.hypot(v.getX() - other.getX(), v.getY() - other.getY());
             double nextDistance = Math.hypot(nextX - otherNextX, nextY - otherNextY);
-            double pathDistance = v.segmentDistance(v.x, v.y, nextX, nextY, other.x, other.y, otherNextX, otherNextY);
+            double pathDistance = v.segmentDistance(v.getX(), v.getY(), nextX, nextY, other.getX(), other.getY(), otherNextX, otherNextY);
 
             if (currentDistance > collisionGap * 1.35
                     && nextDistance > collisionGap * 1.25
@@ -277,7 +278,7 @@ public class IntersectionNavigator {
             boolean hardCollision = immediateCollision || pathDistance < collisionGap * 0.85;
 
             // Resolve mutual approach deadlocks at intersections
-            boolean otherClearing = other.passedStopLine || v.isInsideStandardIntersection(intersection, other.x, other.y);
+            boolean otherClearing = other.passedStopLine || v.isInsideStandardIntersection(intersection, other.getX(), other.getY());
             if (!mustYield) {
                 if (hardCollision && otherClearing) {
                     // We must yield to the vehicle already clearing the intersection to prevent accidents
@@ -291,7 +292,7 @@ public class IntersectionNavigator {
                 }
             }
 
-            boolean insideIntersection = Math.hypot(v.x - intersection.getX(), v.y - intersection.getY())
+            boolean insideIntersection = Math.hypot(v.getX() - intersection.getX(), v.getY() - intersection.getY())
                     < Vehicle.INTERSECTION_CLEAR_RADIUS;
             boolean clearingIntersection = v.passedStopLine && insideIntersection;
             if (!clearingIntersection) {
@@ -311,13 +312,13 @@ public class IntersectionNavigator {
         return limitedSpeed;
     }
 
-    static boolean hasIntersectionClearPriorityOver(Vehicle v, Vehicle other, Intersection intersection) {
-        if (v.isPriorityVehicle != other.isPriorityVehicle) {
-            return v.isPriorityVehicle;
+    public static boolean hasIntersectionClearPriorityOver(Vehicle v, Vehicle other, Intersection intersection) {
+        if (v.isPriorityVehicle() != other.isPriorityVehicle()) {
+            return v.isPriorityVehicle();
         }
 
-        boolean thisClearing = v.passedStopLine || v.isInsideStandardIntersection(intersection, v.x, v.y);
-        boolean otherClearing = other.passedStopLine || v.isInsideStandardIntersection(intersection, other.x, other.y);
+        boolean thisClearing = v.passedStopLine || v.isInsideStandardIntersection(intersection, v.getX(), v.getY());
+        boolean otherClearing = other.passedStopLine || v.isInsideStandardIntersection(intersection, other.getX(), other.getY());
         if (thisClearing != otherClearing) {
             return thisClearing;
         }
@@ -327,14 +328,14 @@ public class IntersectionNavigator {
                 && v.activeIntersectionEntryOrder != other.activeIntersectionEntryOrder) {
             return v.activeIntersectionEntryOrder < other.activeIntersectionEntryOrder;
         }
-        return v.id.compareTo(other.id) <= 0;
+        return v.getId().compareTo(other.getId()) <= 0;
     }
 
-    static boolean shouldYieldForIntersectionCollision(Vehicle v, Vehicle other) {
-        if (!v.isPriorityVehicle && other.isPriorityVehicle) {
+    public static boolean shouldYieldForIntersectionCollision(Vehicle v, Vehicle other) {
+        if (!v.isPriorityVehicle() && other.isPriorityVehicle()) {
             return true;
         }
-        if (v.isPriorityVehicle && !other.isPriorityVehicle) {
+        if (v.isPriorityVehicle() && !other.isPriorityVehicle()) {
             return false;
         }
         if (v.passedStopLine != other.passedStopLine) {
@@ -345,14 +346,14 @@ public class IntersectionNavigator {
                 && v.activeIntersectionEntryOrder != other.activeIntersectionEntryOrder) {
             return v.activeIntersectionEntryOrder > other.activeIntersectionEntryOrder;
         }
-        return v.id.compareTo(other.id) > 0;
+        return v.getId().compareTo(other.getId()) > 0;
     }
 
-    static boolean isSameCollisionLane(Vehicle v, Vehicle other, int lightIdx) {
-        double laneThreshold = Math.max(16.0, (v.height + other.height) * 0.55);
+    public static boolean isSameCollisionLane(Vehicle v, Vehicle other, int lightIdx) {
+        double laneThreshold = Math.max(16.0, (v.getHeight() + other.getHeight()) * 0.55);
         if (lightIdx < 2) {
-            return Math.abs(other.y - v.y) <= laneThreshold;
+            return Math.abs(other.getY() - v.getY()) <= laneThreshold;
         }
-        return Math.abs(other.x - v.x) <= laneThreshold;
+        return Math.abs(other.getX() - v.getX()) <= laneThreshold;
     }
 }

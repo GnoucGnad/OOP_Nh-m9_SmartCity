@@ -45,7 +45,9 @@ public class VehicleRenderer {
         gc.save();
         gc.translate(p.getX(), p.getY());
         gc.rotate(Math.toDegrees(vehicle.getVisualDirection()));
-        gc.setEffect(new DropShadow(Math.max(2.0, 4.0 * scale), 1.5, 1.5, Color.color(0, 0, 0, 0.35)));
+        if (settings.getRenderMode() == RenderMode.GRAPHIC) {
+            gc.setEffect(new DropShadow(Math.max(2.0, 4.0 * scale), 1.5, 1.5, Color.color(0, 0, 0, 0.35)));
+        }
 
         if (settings.getRenderMode() == RenderMode.GRAPHIC) {
             renderGraphic(gc, vehicle, type, width, height);
@@ -105,6 +107,10 @@ public class VehicleRenderer {
         }
         if ("firetruck".equals(type)) {
             renderFireTruck(gc, width, height);
+            return;
+        }
+        if ("violator".equals(type)) {
+            renderCar(gc, width, height, Color.web("#e84393"));
             return;
         }
         renderCar(gc, width, height, colorFor(type, false));
@@ -715,6 +721,9 @@ public class VehicleRenderer {
     private String vehicleType(Vehicle vehicle) {
         String simpleName = vehicle.getClass().getSimpleName().toLowerCase();
         String id = vehicle.getId() == null ? "" : vehicle.getId().toLowerCase();
+        if (id.contains("violator") || (vehicle.getDrivingStrategy() instanceof vn.edu.hust.traffic.behavior.ViolatorDriver)) {
+            return "violator";
+        }
         String value = simpleName + " " + id;
         if (value.contains("fire")) {
             return "firetruck";
@@ -750,6 +759,9 @@ public class VehicleRenderer {
         if ("bicycle".equals(type)) {
             return Color.web("#2d9c68");
         }
+        if ("violator".equals(type)) {
+            return Color.web("#e84393");
+        }
         return Color.web("#2f80ed");
     }
 
@@ -767,6 +779,7 @@ public class VehicleRenderer {
             case "bus" -> "Bus";
             case "motorbike" -> "Moto";
             case "bicycle" -> "Bike";
+            case "violator" -> "Viol";
             default -> "Car";
         };
     }

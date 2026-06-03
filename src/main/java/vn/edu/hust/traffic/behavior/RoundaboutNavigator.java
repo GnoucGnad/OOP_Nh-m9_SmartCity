@@ -1,14 +1,15 @@
-package vn.edu.hust.traffic.model.vehicle;
+package vn.edu.hust.traffic.behavior;
 
+import vn.edu.hust.traffic.model.vehicle.Vehicle;
 import vn.edu.hust.traffic.model.map.RoundaboutIntersection;
 import java.util.List;
 
 /**
- * Helper class to manage roundabout navigation, approach and exit logic.
+ * Lớp trợ giúp quản lý việc điều khiển xe trong bùng binh, các lối vào và lối ra.
  */
 public class RoundaboutNavigator {
 
-    static void updateRoundabout(Vehicle v, double dt, List<Vehicle> allVehicles, RoundaboutIntersection roundabout) {
+    public static void updateRoundabout(Vehicle v, double dt, List<Vehicle> allVehicles, RoundaboutIntersection roundabout) {
         double cx = roundabout.getX();
         double cy = roundabout.getY();
         double[] roadAngles = roundabout.getRoadAngles();
@@ -20,7 +21,7 @@ public class RoundaboutNavigator {
         if (v.exitedRoundabout && !v.insideRoundabout
                 && (isOnRoundaboutApproach(v, roundabout) || isInsideRoundaboutForbiddenIsland(v, roundabout))) {
             v.exitedRoundabout = false;
-            v.hasTurned = false;
+            v.setTurnIntention(0);
             v.passedStopLine = false;
             v.spawnSourceIndex = -1;
             v.targetExitIndex = -1;
@@ -28,11 +29,11 @@ public class RoundaboutNavigator {
 
         // 1. Initialize roundabout target exit and source index if not set
         if (v.spawnSourceIndex == -1) {
-            v.spawnSourceIndex = getApproachRoadIndex(v.x, v.y, v.direction, cx, cy, roadAngles);
+            v.spawnSourceIndex = getApproachRoadIndex(v.getX(), v.getY(), v.getDirection(), cx, cy, roadAngles);
 
             // Calculate our offset from the road axis to know which lane we spawned in
-            double dx = v.x - cx;
-            double dy = v.y - cy;
+            double dx = v.getX() - cx;
+            double dy = v.getY() - cy;
             double roadTheta = roadAngles[v.spawnSourceIndex];
             double calculatedOffset = dx * Math.sin(roadTheta) - dy * Math.cos(roadTheta);
             v.laneOffsetVal = normalizeRoundaboutLaneOffset(Math.abs(calculatedOffset));
@@ -57,17 +58,17 @@ public class RoundaboutNavigator {
 
         if (!v.insideRoundabout && isInsideRoundaboutBody(v, roundabout)) {
             v.insideRoundabout = true;
-            v.roundaboutAngle = Math.atan2(v.y - cy, v.x - cx);
-            double currentR = Math.hypot(v.x - cx, v.y - cy);
+            v.roundaboutAngle = Math.atan2(v.getY() - cy, v.getX() - cx);
+            double currentR = Math.hypot(v.getX() - cx, v.getY() - cy);
             double targetR = clampRoundaboutRadius(currentR);
-            double newR = (currentR < Vehicle.ROUNDABOUT_MIN_DRIVE_RADIUS || v.speed <= 0.1)
+            double newR = (currentR < Vehicle.ROUNDABOUT_MIN_DRIVE_RADIUS || v.getSpeed() <= 0.1)
                     ? targetR
                     : currentR + (targetR - currentR) * v.blendAlpha(dt, Vehicle.ROUNDABOUT_RADIUS_BLEND_RATE);
-            v.x = cx + newR * Math.cos(v.roundaboutAngle);
-            v.y = cy + newR * Math.sin(v.roundaboutAngle);
+            v.setX(cx + newR * Math.cos(v.roundaboutAngle));
+            v.setY(cy + newR * Math.sin(v.roundaboutAngle));
         }
 
-        double safeDistance = (v.width > 30) ? 50 : 30;
+        double safeDistance = (v.getWidth() > 30) ? 50 : 30;
         double currentTargetSpeed = v.baseSpeed;
         boolean shouldStop = false;
         boolean hardRoundaboutBlock = false;
@@ -76,8 +77,8 @@ public class RoundaboutNavigator {
 
         if (!v.insideRoundabout) {
             // APPROACHING THE ROUNDABOUT (yielding at distance 180)
-            double dx = v.x - cx;
-            double dy = v.y - cy;
+            double dx = v.getX() - cx;
+            double dy = v.getY() - cy;
             double d = dx * Math.cos(thetaSource) + dy * Math.sin(thetaSource);
 
             double stopDist = d - Vehicle.ROUNDABOUT_ENTRY_RADIUS;
@@ -88,9 +89,9 @@ public class RoundaboutNavigator {
             for (Vehicle other : allVehicles) {
                 if (other != v && other.insideRoundabout) {
                     double diff = Vehicle.counterClockwiseDistance(other.roundaboutAngle, thetaSource);
-                    double priorityWindow = (!v.isPriorityVehicle && other.isPriorityVehicle) ? 1.0 : 0.6;
+                    double priorityWindow = (!v.isPriorityVehicle() && other.isPriorityVehicle()) ? 1.0 : 0.6;
                     // If the other vehicle is stopped or moving extremely slowly, reduce the window to prevent gridlock
-                    if (other.speed < 2.0) {
+                    if (other.getSpeed() < 2.0) {
                         priorityWindow = 0.25; 
                     }
                     if (diff > 0 && diff < priorityWindow) {
@@ -98,17 +99,17 @@ public class RoundaboutNavigator {
                         break;
                     }
                 }
-                if (!v.isPriorityVehicle
+                if (!v.isPriorityVehicle()
                         && other != v
-                        && other.isPriorityVehicle
+                        && other.isPriorityVehicle()
                         && !other.insideRoundabout
                         && !other.exitedRoundabout
                         && isOnRoundaboutApproach(other, roundabout)) {
-                    int otherSourceIndex = getApproachRoadIndex(other.x, other.y, other.direction,
+                    int otherSourceIndex = getApproachRoadIndex(other.getX(), other.getY(), other.getDirection(),
                             cx, cy, roadAngles);
                     if (otherSourceIndex == v.spawnSourceIndex) {
-                        double otherDx = other.x - cx;
-                        double otherDy = other.y - cy;
+                        double otherDx = other.getX() - cx;
+                        double otherDy = other.getY() - cy;
                         double otherD = otherDx * Math.cos(thetaSource) + otherDy * Math.sin(thetaSource);
                         if (otherD >= d) {
                             continue;
@@ -134,11 +135,11 @@ public class RoundaboutNavigator {
                     continue;
                 }
 
-                double otherDx = other.x - cx;
-                double otherDy = other.y - cy;
+                double otherDx = other.getX() - cx;
+                double otherDy = other.getY() - cy;
                 double otherD = otherDx * Math.cos(thetaSource) + otherDy * Math.sin(thetaSource);
                 double otherLateral = Math.abs(otherDx * Math.sin(thetaSource) - otherDy * Math.cos(thetaSource));
-                double otherHeadingDiff = Math.abs(Vehicle.normalizeAngle(other.direction - (thetaSource + Math.PI)));
+                double otherHeadingDiff = Math.abs(Vehicle.normalizeAngle(other.getDirection() - (thetaSource + Math.PI)));
                 if (otherD >= d || otherLateral > Vehicle.ROAD_HALF_WIDTH || otherHeadingDiff > 0.65) {
                     continue;
                 }
@@ -150,7 +151,7 @@ public class RoundaboutNavigator {
                         shouldStop = true;
                     } else {
                         double ratio = (gap - 8.0) / (safeDistance - 8.0);
-                        currentTargetSpeed = Math.min(currentTargetSpeed, other.speed * Math.max(0.0, ratio));
+                        currentTargetSpeed = Math.min(currentTargetSpeed, other.getSpeed() * Math.max(0.0, ratio));
                     }
                 }
             }
@@ -158,9 +159,10 @@ public class RoundaboutNavigator {
             if (!hardApproachBlock && !shouldStop && d <= entryMergeDistance) {
                 moveTowardRoundaboutEntryLane(v, cx, cy, thetaSource, Math.max(0.0, d), dt);
                 v.insideRoundabout = true;
-                v.roundaboutAngle = Math.atan2(v.y - cy, v.x - cx);
+                v.roundaboutAngle = Math.atan2(v.getY() - cy, v.getX() - cx);
             } else {
-                v.direction = v.interpolateAngle(v.direction, thetaSource + Math.PI, v.blendAlpha(dt, Vehicle.ROUNDABOUT_HEADING_BLEND_RATE));
+                v.setX(v.getX()); // maintain position or move via speed
+                v.direction = v.interpolateAngle(v.getDirection(), thetaSource + Math.PI, v.blendAlpha(dt, Vehicle.ROUNDABOUT_HEADING_BLEND_RATE));
                 if (d <= Vehicle.ROUNDABOUT_ENTRY_RADIUS) {
                     moveTowardRoundaboutEntryLane(v, cx, cy, thetaSource, d, dt);
                 }
@@ -179,14 +181,14 @@ public class RoundaboutNavigator {
                 targetR = 165.0; // Outer lane
             }
 
-            double currentR = clampRoundaboutRadius(Math.hypot(v.x - cx, v.y - cy));
+            double currentR = clampRoundaboutRadius(Math.hypot(v.getX() - cx, v.getY() - cy));
             double newR = clampRoundaboutRadius(
                     currentR + (targetR - currentR) * v.blendAlpha(dt, Vehicle.ROUNDABOUT_RADIUS_BLEND_RATE));
 
             for (Vehicle other : allVehicles) {
                 if (other != v && other.insideRoundabout) {
                     double angleDiff = Vehicle.counterClockwiseDistance(v.roundaboutAngle, other.roundaboutAngle);
-                    double otherR = clampRoundaboutRadius(Math.hypot(other.x - cx, other.y - cy));
+                    double otherR = clampRoundaboutRadius(Math.hypot(other.getX() - cx, other.getY() - cy));
                     double laneDistance = Math.abs(otherR - currentR);
                     if (angleDiff > 0 && angleDiff < 0.55 && laneDistance < 32.0) {
                         double gap = Math.min(newR, otherR) * angleDiff - v.getHalfLength() - other.getHalfLength();
@@ -195,7 +197,7 @@ public class RoundaboutNavigator {
                             if (gap <= minGap) {
                                 if (gap <= 0.0) {
                                     // Tie-breaker to prevent mutual deadlock inside roundabout (only if different/crossing lanes)
-                                    if (laneDistance >= 12.0 && v.id.compareTo(other.id) < 0) {
+                                    if (laneDistance >= 12.0 && v.getId().compareTo(other.getId()) < 0) {
                                         currentTargetSpeed = Math.max(currentTargetSpeed, v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR * 0.5);
                                     } else {
                                         hardRoundaboutBlock = true;
@@ -203,11 +205,11 @@ public class RoundaboutNavigator {
                                     }
                                 } else {
                                     currentTargetSpeed = Math.min(currentTargetSpeed,
-                                            Math.max(other.speed, v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR));
+                                            Math.max(other.getSpeed(), v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR));
                                 }
                             } else {
                                 double ratio = (gap - minGap) / (safeDistance - minGap);
-                                currentTargetSpeed = Math.min(currentTargetSpeed, other.speed * ratio);
+                                currentTargetSpeed = Math.min(currentTargetSpeed, other.getSpeed() * ratio);
                             }
                         }
                     }
@@ -221,20 +223,20 @@ public class RoundaboutNavigator {
                 double adjustedTargetSpeed = shouldStop
                         ? Math.max(currentTargetSpeed, v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR)
                         : currentTargetSpeed;
-                v.speed = v.speed + (adjustedTargetSpeed - v.speed) * 0.1;
+                v.speed = v.getSpeed() + (adjustedTargetSpeed - v.getSpeed()) * 0.1;
                 if (shouldStop) {
-                    v.speed = Math.max(v.speed, v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR);
+                    v.speed = Math.max(v.getSpeed(), v.baseSpeed * Vehicle.ROUNDABOUT_CRAWL_MIN_SPEED_FACTOR);
                 }
             }
             speedAlreadyApplied = true;
 
             double previousAngle = v.roundaboutAngle;
-            double omega = v.speed / newR;
+            double omega = v.getSpeed() / newR;
             v.roundaboutAngle = Vehicle.normalizeAngle(v.roundaboutAngle - omega * dt);
 
-            v.x = cx + newR * Math.cos(v.roundaboutAngle);
-            v.y = cy + newR * Math.sin(v.roundaboutAngle);
-            v.direction = v.interpolateAngle(v.direction, v.roundaboutAngle - Math.PI / 2.0,
+            v.setX(cx + newR * Math.cos(v.roundaboutAngle));
+            v.setY(cy + newR * Math.sin(v.roundaboutAngle));
+            v.direction = v.interpolateAngle(v.getDirection(), v.roundaboutAngle - Math.PI / 2.0,
                     v.blendAlpha(dt, Vehicle.ROUNDABOUT_HEADING_BLEND_RATE));
 
             // Exit condition
@@ -250,19 +252,19 @@ public class RoundaboutNavigator {
             }
         } else if (v.exitedRoundabout) {
             // EXITING THE ROUNDABOUT
-            double dx = v.x - cx;
-            double dy = v.y - cy;
+            double dx = v.getX() - cx;
+            double dy = v.getY() - cy;
             double d = dx * Math.cos(thetaTarget) + dy * Math.sin(thetaTarget);
 
             v.direction = thetaTarget;
-            placeOnRoundaboutExitLane(v, cx, cy, thetaTarget, d + v.speed * dt);
+            placeOnRoundaboutExitLane(v, cx, cy, thetaTarget, d + v.getSpeed() * dt);
         }
 
         if (!speedAlreadyApplied) {
             if (shouldStop) {
                 v.speed = 0;
             } else {
-                v.speed = v.speed + (currentTargetSpeed - v.speed) * 0.1;
+                v.speed = v.getSpeed() + (currentTargetSpeed - v.getSpeed()) * 0.1;
             }
         }
 
@@ -271,14 +273,14 @@ public class RoundaboutNavigator {
         }
     }
 
-    static void advanceRoundaboutApproach(Vehicle v, double cx, double cy, double theta,
+    public static void advanceRoundaboutApproach(Vehicle v, double cx, double cy, double theta,
             double entryMergeDistance, double dt) {
-        double dx = v.x - cx;
-        double dy = v.y - cy;
+        double dx = v.getX() - cx;
+        double dy = v.getY() - cy;
         double d = dx * Math.cos(theta) + dy * Math.sin(theta);
-        double travel = Math.max(0.0, v.speed * dt);
+        double travel = Math.max(0.0, v.getSpeed() * dt);
 
-        v.direction = v.interpolateAngle(v.direction, theta + Math.PI, v.blendAlpha(dt, Vehicle.ROUNDABOUT_HEADING_BLEND_RATE));
+        v.direction = v.interpolateAngle(v.getDirection(), theta + Math.PI, v.blendAlpha(dt, Vehicle.ROUNDABOUT_HEADING_BLEND_RATE));
         if (travel <= 0.0) {
             double stoppedD = d <= entryMergeDistance ? entryMergeDistance : Math.max(0.0, d);
             if (d <= Vehicle.ROUNDABOUT_ENTRY_RADIUS) {
@@ -299,43 +301,43 @@ public class RoundaboutNavigator {
         placeOnRoundaboutEntryLane(v, cx, cy, theta, entryD);
 
         v.insideRoundabout = true;
-        v.roundaboutAngle = Math.atan2(v.y - cy, v.x - cx);
-        double radius = clampRoundaboutRadius(Math.hypot(v.x - cx, v.y - cy));
+        v.roundaboutAngle = Math.atan2(v.getY() - cy, v.getX() - cx);
+        double radius = clampRoundaboutRadius(Math.hypot(v.getX() - cx, v.getY() - cy));
         if (remainingTravel > 0.0) {
             v.roundaboutAngle = Vehicle.normalizeAngle(v.roundaboutAngle - remainingTravel / radius);
         }
-        v.x = cx + radius * Math.cos(v.roundaboutAngle);
-        v.y = cy + radius * Math.sin(v.roundaboutAngle);
-        v.direction = v.interpolateAngle(v.direction, v.roundaboutAngle - Math.PI / 2.0,
+        v.setX(cx + radius * Math.cos(v.roundaboutAngle));
+        v.setY(cy + radius * Math.sin(v.roundaboutAngle));
+        v.direction = v.interpolateAngle(v.getDirection(), v.roundaboutAngle - Math.PI / 2.0,
                 v.blendAlpha(dt, Vehicle.ROUNDABOUT_HEADING_BLEND_RATE));
     }
 
-    static void placeOnRoundaboutEntryLane(Vehicle v, double cx, double cy, double theta, double distanceFromCenter) {
-        v.x = cx + distanceFromCenter * Math.cos(theta) + v.laneOffsetVal * Math.sin(theta);
-        v.y = cy + distanceFromCenter * Math.sin(theta) - v.laneOffsetVal * Math.cos(theta);
+    public static void placeOnRoundaboutEntryLane(Vehicle v, double cx, double cy, double theta, double distanceFromCenter) {
+        v.setX(cx + distanceFromCenter * Math.cos(theta) + v.laneOffsetVal * Math.sin(theta));
+        v.setY(cy + distanceFromCenter * Math.sin(theta) - v.laneOffsetVal * Math.cos(theta));
     }
 
-    static void moveTowardRoundaboutEntryLane(Vehicle v, double cx, double cy, double theta, double distanceFromCenter,
+    public static void moveTowardRoundaboutEntryLane(Vehicle v, double cx, double cy, double theta, double distanceFromCenter,
             double dt) {
         double targetX = cx + distanceFromCenter * Math.cos(theta) + v.laneOffsetVal * Math.sin(theta);
         double targetY = cy + distanceFromCenter * Math.sin(theta) - v.laneOffsetVal * Math.cos(theta);
-        if (v.speed <= 0.1) {
-            v.x = targetX;
-            v.y = targetY;
+        if (v.getSpeed() <= 0.1) {
+            v.setX(targetX);
+            v.setY(targetY);
             return;
         }
 
         double alpha = v.blendAlpha(dt, Vehicle.ROUNDABOUT_LANE_BLEND_RATE);
-        v.x += (targetX - v.x) * alpha;
-        v.y += (targetY - v.y) * alpha;
+        v.setX(v.getX() + (targetX - v.getX()) * alpha);
+        v.setY(v.getY() + (targetY - v.getY()) * alpha);
     }
 
-    static void placeOnRoundaboutExitLane(Vehicle v, double cx, double cy, double theta, double distanceFromCenter) {
-        v.x = cx + distanceFromCenter * Math.cos(theta) - v.laneOffsetVal * Math.sin(theta);
-        v.y = cy + distanceFromCenter * Math.sin(theta) + v.laneOffsetVal * Math.cos(theta);
+    public static void placeOnRoundaboutExitLane(Vehicle v, double cx, double cy, double theta, double distanceFromCenter) {
+        v.setX(cx + distanceFromCenter * Math.cos(theta) - v.laneOffsetVal * Math.sin(theta));
+        v.setY(cy + distanceFromCenter * Math.sin(theta) + v.laneOffsetVal * Math.cos(theta));
     }
 
-    static double normalizeRoundaboutLaneOffset(double offset) {
+    public static double normalizeRoundaboutLaneOffset(double offset) {
         double closest = Vehicle.ROUNDABOUT_LANE_OFFSETS[0];
         double minDistance = Math.abs(offset - closest);
         for (double laneOffset : Vehicle.ROUNDABOUT_LANE_OFFSETS) {
@@ -348,11 +350,11 @@ public class RoundaboutNavigator {
         return closest;
     }
 
-    static double clampRoundaboutRadius(double radius) {
+    public static double clampRoundaboutRadius(double radius) {
         return Math.max(Vehicle.ROUNDABOUT_MIN_DRIVE_RADIUS, Math.min(Vehicle.ROUNDABOUT_MAX_DRIVE_RADIUS, radius));
     }
 
-    static boolean isOnRoundaboutApproach(Vehicle v, RoundaboutIntersection roundabout) {
+    public static boolean isOnRoundaboutApproach(Vehicle v, RoundaboutIntersection roundabout) {
         if (v.insideRoundabout) {
             return true;
         }
@@ -364,21 +366,21 @@ public class RoundaboutNavigator {
 
         double cx = roundabout.getX();
         double cy = roundabout.getY();
-        int roadIndex = getApproachRoadIndex(v.x, v.y, v.direction, cx, cy, roadAngles);
+        int roadIndex = getApproachRoadIndex(v.getX(), v.getY(), v.getDirection(), cx, cy, roadAngles);
         double theta = roadAngles[roadIndex];
-        double dx = v.x - cx;
-        double dy = v.y - cy;
+        double dx = v.getX() - cx;
+        double dy = v.getY() - cy;
         double forwardDistance = dx * Math.cos(theta) + dy * Math.sin(theta);
         double lateralDistance = Math.abs(dx * Math.sin(theta) - dy * Math.cos(theta));
-        double headingDiff = Math.abs(Vehicle.normalizeAngle(v.direction - (theta + Math.PI)));
+        double headingDiff = Math.abs(Vehicle.normalizeAngle(v.getDirection() - (theta + Math.PI)));
 
         return forwardDistance > 0
                 && forwardDistance < Vehicle.ROUNDABOUT_CAPTURE_DISTANCE
-                && lateralDistance <= Vehicle.ROAD_HALF_WIDTH + v.width / 2.0
+                && lateralDistance <= Vehicle.ROAD_HALF_WIDTH + v.getWidth() / 2.0
                 && headingDiff < Vehicle.ROUNDABOUT_APPROACH_HEADING_TOLERANCE;
     }
 
-    static boolean shouldTargetRoundabout(Vehicle v, RoundaboutIntersection roundabout) {
+    public static boolean shouldTargetRoundabout(Vehicle v, RoundaboutIntersection roundabout) {
         if (v.insideRoundabout) {
             return true;
         }
@@ -388,31 +390,31 @@ public class RoundaboutNavigator {
         return isOnRoundaboutApproach(v, roundabout) || isInsideRoundaboutForbiddenIsland(v, roundabout);
     }
 
-    static boolean isInsideRoundaboutForbiddenIsland(Vehicle v, RoundaboutIntersection roundabout) {
-        double radius = Math.hypot(v.x - roundabout.getX(), v.y - roundabout.getY());
+    public static boolean isInsideRoundaboutForbiddenIsland(Vehicle v, RoundaboutIntersection roundabout) {
+        double radius = Math.hypot(v.getX() - roundabout.getX(), v.getY() - roundabout.getY());
         double islandBoundary = Math.max(0.0, roundabout.getRadius() - Vehicle.ROUNDABOUT_ISLAND_RADIUS_INSET)
-                + v.height / 2.0 + Vehicle.ROUNDABOUT_ISLAND_GUARD_MARGIN;
+                + v.getHeight() / 2.0 + Vehicle.ROUNDABOUT_ISLAND_GUARD_MARGIN;
         return radius < islandBoundary;
     }
 
-    static boolean isInsideRoundaboutBody(Vehicle v, RoundaboutIntersection roundabout) {
-        return Math.hypot(v.x - roundabout.getX(), v.y - roundabout.getY())
+    public static boolean isInsideRoundaboutBody(Vehicle v, RoundaboutIntersection roundabout) {
+        return Math.hypot(v.getX() - roundabout.getX(), v.getY() - roundabout.getY())
                 <= Vehicle.ROUNDABOUT_MAX_DRIVE_RADIUS + v.getHalfLength();
     }
 
-    static double roundaboutLaneMergeDistance(Vehicle v) {
+    public static double roundaboutLaneMergeDistance(Vehicle v) {
         double r = Vehicle.ROUNDABOUT_MAX_DRIVE_RADIUS;
         return Math.sqrt(Math.max(0.0, r * r - v.laneOffsetVal * v.laneOffsetVal));
     }
 
-    static double getRoundaboutExitLaneAngle(Vehicle v, double theta) {
+    public static double getRoundaboutExitLaneAngle(Vehicle v, double theta) {
         double d = roundaboutLaneMergeDistance(v);
         double localX = d * Math.cos(theta) - v.laneOffsetVal * Math.sin(theta);
         double localY = d * Math.sin(theta) + v.laneOffsetVal * Math.cos(theta);
         return Math.atan2(localY, localX);
     }
 
-    static int getExitsRemaining(double currentAngle, double targetExitAngle, double[] roadAngles) {
+    public static int getExitsRemaining(double currentAngle, double targetExitAngle, double[] roadAngles) {
         double targetNorm = Vehicle.normalizeAngle(targetExitAngle);
         double currentNorm = Vehicle.normalizeAngle(currentAngle);
         double diff = Vehicle.counterClockwiseDistance(currentNorm, targetNorm);
@@ -427,7 +429,7 @@ public class RoundaboutNavigator {
         return count;
     }
 
-    static int getClosestRoadIndex(double x, double y, double cx, double cy, double[] roadAngles) {
+    public static int getClosestRoadIndex(double x, double y, double cx, double cy, double[] roadAngles) {
         double dx = x - cx;
         double dy = y - cy;
         double currentAngle = Math.atan2(dy, dx);
@@ -443,7 +445,7 @@ public class RoundaboutNavigator {
         return closestIdx;
     }
 
-    static int getApproachRoadIndex(double x, double y, double direction, double cx, double cy, double[] roadAngles) {
+    public static int getApproachRoadIndex(double x, double y, double direction, double cx, double cy, double[] roadAngles) {
         int bestHeadingIdx = 0;
         double bestHeadingDiff = Double.MAX_VALUE;
         for (int i = 0; i < roadAngles.length; i++) {
@@ -462,7 +464,7 @@ public class RoundaboutNavigator {
         return getClosestRoadIndex(x, y, cx, cy, roadAngles);
     }
 
-    static boolean isNextExit(double currentAngle, double targetExitAngle, double[] roadAngles) {
+    public static boolean isNextExit(double currentAngle, double targetExitAngle, double[] roadAngles) {
         double minCCWDiff = Double.MAX_VALUE;
         int nextExitIdx = -1;
         for (int i = 0; i < roadAngles.length; i++) {
@@ -478,7 +480,7 @@ public class RoundaboutNavigator {
         return false;
     }
 
-    static boolean hasReachedCounterClockwiseExit(double previousAngle, double currentAngle, double targetAngle) {
+    public static boolean hasReachedCounterClockwiseExit(double previousAngle, double currentAngle, double targetAngle) {
         double travelled = Vehicle.counterClockwiseDistance(previousAngle, currentAngle);
         double distanceToTarget = Vehicle.counterClockwiseDistance(previousAngle, targetAngle);
         return distanceToTarget <= travelled + 0.03

@@ -18,10 +18,10 @@ import java.util.List;
  * Phase 5: TTB VÀNG
  */
 public class ThreeWayPhaseController {
-    private static final double BASE_STRAIGHT = 10.0;
-    private static final double MAX_STRAIGHT  = 20.0;
-    private static final double BASE_LEFT     = 6.0;
-    private static final double MAX_LEFT      = 12.0;
+    public static boolean isTestMode = false;
+
+    private static double getBaseStraight() { return isTestMode ? 10.0 : 30.0; }
+    private static double getBaseLeft() { return isTestMode ? 6.0 : 30.0; }
     private static final double DUR_YELLOW    = 3.0;
 
     private int currentPhase;
@@ -174,19 +174,19 @@ public class ThreeWayPhaseController {
         switch (phase) {
             case 0: // LTR Thẳng XANH, RTL Thẳng/Phải XANH
                 ltrS = State.GREEN; rtlS = State.GREEN;
-                duration = BASE_STRAIGHT; 
+                duration = getBaseStraight(); 
                 break;
             case 1:
                 ltrS = State.YELLOW; rtlS = State.YELLOW; duration = DUR_YELLOW;
                 break;
             case 2: // LTR Trái XANH
-                ltrL = State.GREEN; duration = BASE_LEFT;
+                ltrL = State.GREEN; duration = getBaseLeft();
                 break;
             case 3:
                 ltrL = State.YELLOW; duration = DUR_YELLOW;
                 break;
             case 4: // TTB (Trên xuống) Trái/Phải XANH
-                ttbS = State.GREEN; ttbL = State.GREEN; duration = BASE_LEFT;
+                ttbS = State.GREEN; ttbL = State.GREEN; duration = getBaseLeft();
                 break;
             case 5:
                 ttbS = State.YELLOW; ttbL = State.YELLOW; duration = DUR_YELLOW;
@@ -205,4 +205,5 @@ public class ThreeWayPhaseController {
 
     public int getCurrentPhase() { return currentPhase; }
     public double getPhaseTimeLeft() { return phaseTimer; }
+    public List<TrafficLight> getLights() { return lights; }
 }

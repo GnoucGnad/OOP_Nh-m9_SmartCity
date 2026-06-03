@@ -1,6 +1,10 @@
 package vn.edu.hust.traffic.view;
 
 import java.util.OptionalInt;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
+import vn.edu.hust.traffic.model.vehicle.Vehicle;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -30,6 +34,8 @@ public class SimulationWindow extends Application {
     private GraphicsContext gc;
     private TrafficControllerAdapter controllerAdapter;
     private boolean running = true;
+
+    private final Set<String> knownVehicleIds = new HashSet<>();
 
     @Override
     public void start(Stage primaryStage) {
@@ -105,9 +111,7 @@ public class SimulationWindow extends Application {
             SoundPlayer.setVolume(value);
         });
         controlPanel.setOnSpawnVehicle(type -> {
-            if (controllerAdapter.spawnVehicle(type)) {
-                playVehicleSound(type);
-            }
+            controllerAdapter.spawnVehicle(type);
         });
     }
 
@@ -142,19 +146,20 @@ public class SimulationWindow extends Application {
                 case F -> "FireTruck";
                 default -> null;
             };
-            if (type != null && controllerAdapter.spawnVehicle(type)) {
-                playVehicleSound(type);
+            if (type != null) {
+                controllerAdapter.spawnVehicle(type);
             }
         });
     }
 
     private void configureMouse() {
         canvas.setOnMouseClicked(event -> {
+            camera.fit(settings.getMapType(), canvas.getWidth(), canvas.getHeight());
+
             if (settings.getLightMode() != ControlMode.MANUAL) {
                 return;
             }
             SimulationSnapshot snapshot = controllerAdapter.snapshot();
-            camera.fit(settings.getMapType(), canvas.getWidth(), canvas.getHeight());
             OptionalInt selectedLight = renderer.pickTrafficLight(
                     event.getX(), event.getY(), snapshot, camera, settings);
             selectedLight.ifPresent(controllerAdapter::toggleTrafficLight);
@@ -193,6 +198,30 @@ public class SimulationWindow extends Application {
         SimulationSnapshot snapshot = controllerAdapter.snapshot();
         camera.fit(settings.getMapType(), canvas.getWidth(), canvas.getHeight());
         renderer.render(gc, snapshot, camera, settings);
+
+        if (controllerAdapter.getController() != null) {
+            List<Vehicle> currentVehicles = controllerAdapter.getController().getVehicles();
+            if (currentVehicles != null) {
+                for (Vehicle v : currentVehicles) {
+                    String id = v.getId();
+                    if (id != null && !knownVehicleIds.contains(id)) {
+                        knownVehicleIds.add(id);
+                        String typeStr = v.getClass().getSimpleName();
+                        if (v.getId().toLowerCase().contains("violator")) {
+                            typeStr = "Violator";
+                        }
+                        playVehicleSound(typeStr);
+                    }
+                }
+                knownVehicleIds.removeIf(id -> {
+                    for (Vehicle v : currentVehicles) {
+                        if (v.getId() != null && v.getId().equals(id)) return false;
+                    }
+                    return true;
+                });
+            }
+        }
+
     }
 
     private void resetSimulation() {

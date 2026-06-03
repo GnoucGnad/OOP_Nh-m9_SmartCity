@@ -55,6 +55,10 @@ public class TrafficController {
     private IntersectionPhaseController phaseController1;
     private ThreeWayPhaseController phaseController2;
     private IntersectionPhaseController phaseController3;
+
+    private final List<IntersectionPhaseController> crossPhaseControllers = new ArrayList<>();
+    private final List<ThreeWayPhaseController> threeWayPhaseControllers = new ArrayList<>();
+
     private boolean autoSpawnEnabled = true;
     private boolean autoMode = true;
     private int trafficDensity = 2;
@@ -79,18 +83,22 @@ public class TrafficController {
         phaseController1 = null;
         phaseController2 = null;
         phaseController3 = null;
+        crossPhaseControllers.clear();
+        threeWayPhaseControllers.clear();
 
         if (mode == SimulationMode.CROSS_INTERSECTION || mode == SimulationMode.ROAD_NETWORK) {
             for (int i = 0; i < 4; i++) {
                 lights1.add(new TrafficLight());
             }
             phaseController1 = new IntersectionPhaseController(lights1);
+            crossPhaseControllers.add(phaseController1);
             intersections.add(new CrossIntersection("cross1", CROSS_X, BOTTOM_CROSS_Y, lights1));
 
             for (int i = 0; i < 4; i++) {
                 lights3.add(new TrafficLight());
             }
             phaseController3 = new IntersectionPhaseController(lights3);
+            crossPhaseControllers.add(phaseController3);
             intersections.add(new CrossIntersection("cross2", CROSS_X, TOP_CROSS_Y, lights3));
         }
 
@@ -99,6 +107,7 @@ public class TrafficController {
                 lights2.add(new TrafficLight());
             }
             phaseController2 = new ThreeWayPhaseController(lights2);
+            threeWayPhaseControllers.add(phaseController2);
             double threeWayY = BOTTOM_CROSS_Y;
             intersections.add(new ThreeWayIntersection("three1", THREE_WAY_X, threeWayY, lights2));
         }
@@ -121,14 +130,11 @@ public class TrafficController {
 
     public void update(double dt) {
         if (autoMode) {
-            if (phaseController1 != null) {
-                phaseController1.update(dt, vehicles, intersections);
+            for (IntersectionPhaseController c : crossPhaseControllers) {
+                c.update(dt, vehicles, intersections);
             }
-            if (phaseController2 != null) {
-                phaseController2.update(dt, vehicles, intersections);
-            }
-            if (phaseController3 != null) {
-                phaseController3.update(dt, vehicles, intersections);
+            for (ThreeWayPhaseController c : threeWayPhaseControllers) {
+                c.update(dt, vehicles, intersections);
             }
         } else {
             for (TrafficLight light : getLights()) {
@@ -323,6 +329,11 @@ public class TrafficController {
             case "Bus" -> new Bus("Bus" + vehicleCount, x, y, speed * 0.7, direction);
             case "Car" -> new Car("Car" + vehicleCount, x, y, speed, direction, 26, 13, false);
             case "Motorbike", "Bicycle" -> new Motorbike("Bike" + vehicleCount, x, y, speed, direction, false);
+            case "Violator" -> {
+                Vehicle v = new Car("Violator" + vehicleCount, x, y, speed * 1.25, direction, 26, 13, false);
+                v.setDrivingStrategy(new vn.edu.hust.traffic.behavior.ViolatorDriver());
+                yield v;
+            }
             default -> null;
         };
     }

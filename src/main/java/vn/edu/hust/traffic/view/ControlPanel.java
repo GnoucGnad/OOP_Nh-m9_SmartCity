@@ -162,6 +162,7 @@ public class ControlPanel extends VBox {
         this.onSpawnVehicle = onSpawnVehicle;
     }
 
+
     private Button commandButton(String text) {
         Button button = new Button(text);
         button.setMaxWidth(Double.MAX_VALUE);
@@ -214,7 +215,8 @@ public class ControlPanel extends VBox {
                 spawnButton("Bus", "Bus"));
         HBox row2 = new HBox(7,
                 spawnButton("Ambu", "Ambulance"),
-                spawnButton("Fire", "FireTruck"));
+                spawnButton("Fire", "FireTruck"),
+                spawnButton("Viol", "Violator"));
         row1.setAlignment(Pos.CENTER);
         row2.setAlignment(Pos.CENTER);
         VBox box = new VBox(7, row1, row2);

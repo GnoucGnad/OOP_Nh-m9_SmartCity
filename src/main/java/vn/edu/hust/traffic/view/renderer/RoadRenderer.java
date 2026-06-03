@@ -4,8 +4,14 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import vn.edu.hust.traffic.view.MapType;
+import vn.edu.hust.traffic.view.RenderMode;
 import vn.edu.hust.traffic.view.camera.Camera;
 import vn.edu.hust.traffic.controller.TrafficController;
+import vn.edu.hust.traffic.model.map.Intersection;
+import vn.edu.hust.traffic.model.map.CrossIntersection;
+import vn.edu.hust.traffic.model.map.ThreeWayIntersection;
+import vn.edu.hust.traffic.model.map.RoundaboutIntersection;
+import java.util.List;
 
 public class RoadRenderer {
     private static final double CROSS_X = TrafficController.CROSS_X;
@@ -20,6 +26,32 @@ public class RoadRenderer {
     private static final Color MEDIAN = Color.web("#f1c84b");
     private static final Color SIDEWALK = Color.web("#cdd4d1");
 
+    private RenderMode renderMode = RenderMode.GRAPHIC;
+
+    private Color getRoadColor() {
+        return renderMode == RenderMode.BASIC ? Color.web("#b2bec3") : ROAD;
+    }
+
+    private Color getRoadDarkColor() {
+        return renderMode == RenderMode.BASIC ? Color.web("#a4b0be") : ROAD_DARK;
+    }
+
+    private Color getLaneColor() {
+        return renderMode == RenderMode.BASIC ? Color.web("#ffffff") : LANE;
+    }
+
+    private Color getMedianColor() {
+        return renderMode == RenderMode.BASIC ? Color.web("#ffc048") : MEDIAN;
+    }
+
+    private Color getSidewalkColor() {
+        return renderMode == RenderMode.BASIC ? Color.web("#f5f6fa") : SIDEWALK;
+    }
+
+    private Color getBackgroundColor() {
+        return renderMode == RenderMode.BASIC ? Color.web("#eceff1") : Color.web("#dfe8df");
+    }
+
     public void render(GraphicsContext gc, Camera camera, MapType mapType) {
         drawWorldBackground(gc, camera);
         switch (mapType) {
@@ -30,9 +62,14 @@ public class RoadRenderer {
         }
     }
 
+    public void render(GraphicsContext gc, Camera camera, MapType mapType, RenderMode renderMode) {
+        this.renderMode = renderMode;
+        render(gc, camera, mapType);
+    }
+
     private void drawWorldBackground(GraphicsContext gc, Camera camera) {
         fillWorldRect(gc, camera, camera.getWorldX(), camera.getWorldY(),
-                camera.getWorldWidth(), camera.getWorldHeight(), Color.web("#dfe8df"));
+                camera.getWorldWidth(), camera.getWorldHeight(), getBackgroundColor());
     }
 
     private void drawCrossIntersection(GraphicsContext gc, Camera camera) {
@@ -72,9 +109,9 @@ public class RoadRenderer {
         }
 
         // 2. Draw the Roundabout asphalt circle
-        fillWorldCircle(gc, camera, cx, cy, 190, SIDEWALK);
-        fillWorldCircle(gc, camera, cx, cy, 180, ROAD_DARK);
-        fillWorldCircle(gc, camera, cx, cy, 177, ROAD);
+        fillWorldCircle(gc, camera, cx, cy, 190, getSidewalkColor());
+        fillWorldCircle(gc, camera, cx, cy, 180, getRoadDarkColor());
+        fillWorldCircle(gc, camera, cx, cy, 177, getRoadColor());
 
         // 3. Draw road lane markings and decorations
         for (double theta : angles) {
@@ -90,7 +127,7 @@ public class RoadRenderer {
                     double sy = cy + 180 * Math.sin(theta) + offsetVal * Math.cos(theta);
                     double ex = cx + 600 * Math.cos(theta) - offsetVal * Math.sin(theta);
                     double ey = cy + 600 * Math.sin(theta) + offsetVal * Math.cos(theta);
-                    strokeWorldLine(gc, camera, sx, sy, ex, ey, LANE, 1.0, true);
+                    strokeWorldLine(gc, camera, sx, sy, ex, ey, getLaneColor(), 1.0, true);
                 }
 
                 // Central solid double-yellow median line
@@ -100,7 +137,7 @@ public class RoadRenderer {
                     double sy = cy + 180 * Math.sin(theta) + offsetVal * Math.cos(theta);
                     double ex = cx + 600 * Math.cos(theta) - offsetVal * Math.sin(theta);
                     double ey = cy + 600 * Math.sin(theta) + offsetVal * Math.cos(theta);
-                    strokeWorldLine(gc, camera, sx, sy, ex, ey, MEDIAN, 2.0, false);
+                    strokeWorldLine(gc, camera, sx, sy, ex, ey, getMedianColor(), 2.0, false);
                 }
             }
             
@@ -111,7 +148,7 @@ public class RoadRenderer {
                 double sy = cy + (cwD - 8) * Math.sin(theta) + offsetVal * Math.sin(theta + Math.PI/2);
                 double ex = cx + (cwD + 8) * Math.cos(theta) + offsetVal * Math.cos(theta + Math.PI/2);
                 double ey = cy + (cwD + 8) * Math.sin(theta) + offsetVal * Math.sin(theta + Math.PI/2);
-                strokeWorldLine(gc, camera, sx, sy, ex, ey, LANE, 4.0, false);
+                strokeWorldLine(gc, camera, sx, sy, ex, ey, getLaneColor(), 4.0, false);
             }
 
             // Yield markings at entry
@@ -120,7 +157,7 @@ public class RoadRenderer {
             double sy = cy + yieldD * Math.sin(theta) - 0 * Math.cos(theta);
             double ex = cx + yieldD * Math.cos(theta) + 80 * Math.sin(theta);
             double ey = cy + yieldD * Math.sin(theta) - 80 * Math.cos(theta);
-            strokeWorldLine(gc, camera, sx, sy, ex, ey, LANE, 2.5, true);
+            strokeWorldLine(gc, camera, sx, sy, ex, ey, getLaneColor(), 2.5, true);
 
             // Yield triangles painted on asphalt for each lane (offsets 15, 40, 65)
             double[] spawnOffsets = { 15.0, 40.0, 65.0 };
@@ -142,22 +179,22 @@ public class RoadRenderer {
                     triY - 6 * sinT - 5 * sinP,
                     triY - 6 * sinT + 5 * sinP
                 };
-                fillWorldPolygon(gc, camera, tx, ty, LANE);
+                fillWorldPolygon(gc, camera, tx, ty, getLaneColor());
             }
         }
 
         // 4. Concentric lane markings inside roundabout
-        strokeWorldCircle(gc, camera, cx, cy, 150, LANE, 1.2, true);
-        strokeWorldCircle(gc, camera, cx, cy, 120, LANE, 1.2, true);
+        strokeWorldCircle(gc, camera, cx, cy, 150, getLaneColor(), 1.2, true);
+        strokeWorldCircle(gc, camera, cx, cy, 120, getLaneColor(), 1.2, true);
 
         // 5. Central Island (Green space)
-        fillWorldCircle(gc, camera, cx, cy, 95, SIDEWALK);
-        fillWorldCircle(gc, camera, cx, cy, 85, Color.web("#6ab04c")); // grass
+        fillWorldCircle(gc, camera, cx, cy, 95, getSidewalkColor());
+        fillWorldCircle(gc, camera, cx, cy, 85, renderMode == RenderMode.BASIC ? getBackgroundColor() : Color.web("#6ab04c")); // grass
         strokeWorldCircle(gc, camera, cx, cy, 85, Color.web("#ffffff"), 1.8, false);
 
         // Flower pattern in center
-        fillWorldCircle(gc, camera, cx, cy, 45, Color.web("#fbc531")); // flowerbed
-        fillWorldCircle(gc, camera, cx, cy, 20, Color.web("#448844")); // central shrub
+        fillWorldCircle(gc, camera, cx, cy, 45, renderMode == RenderMode.BASIC ? getRoadColor() : Color.web("#fbc531")); // flowerbed
+        fillWorldCircle(gc, camera, cx, cy, 20, renderMode == RenderMode.BASIC ? getLaneColor() : Color.web("#448844")); // central shrub
     }
 
     private void drawRoadNetwork(GraphicsContext gc, Camera camera, MapType mapType) {
@@ -241,7 +278,7 @@ public class RoadRenderer {
     private void drawThreeWayIntersectionAt(GraphicsContext gc, Camera camera, double centerX, double fromX, double toX) {
         drawRoad(gc, camera, (fromX + toX) / 2.0, CENTER_Y, toX - fromX + 100, 160, 0);
         drawRoad(gc, camera, centerX, CENTER_Y - 165, 430, 160, 90);
-        fillWorldRect(gc, camera, centerX - 80, CENTER_Y - 80, 160, 160, ROAD);
+        fillWorldRect(gc, camera, centerX - 80, CENTER_Y - 80, 160, 160, getRoadColor());
         drawIntersectionCorner(gc, camera, centerX, CENTER_Y, -1, -1);
         drawIntersectionCorner(gc, camera, centerX, CENTER_Y, 1, -1);
         drawLaneMarkings(gc, camera, true, CENTER_Y, fromX - 50, centerX - STOP_OFFSET);
@@ -300,11 +337,11 @@ public class RoadRenderer {
         gc.save();
         gc.translate(p.getX(), p.getY());
         gc.rotate(angleDegrees);
-        gc.setFill(SIDEWALK);
+        gc.setFill(getSidewalkColor());
         gc.fillRect(-length * scale / 2.0, -width * scale / 2.0 - 10 * scale, length * scale, (width + 20) * scale);
-        gc.setFill(ROAD_DARK);
+        gc.setFill(getRoadDarkColor());
         gc.fillRect(-length * scale / 2.0, -width * scale / 2.0, length * scale, width * scale);
-        gc.setFill(ROAD);
+        gc.setFill(getRoadColor());
         gc.fillRect(-length * scale / 2.0, -width * scale / 2.0 + 3 * scale, length * scale, (width - 6) * scale);
         gc.restore();
     }
@@ -314,29 +351,29 @@ public class RoadRenderer {
         double[] offsets = { -53, -27, 27, 53 };
         for (double offset : offsets) {
             if (horizontal) {
-                strokeWorldLine(gc, camera, from, center + offset, to, center + offset, LANE, 1.0, true);
+                strokeWorldLine(gc, camera, from, center + offset, to, center + offset, getLaneColor(), 1.0, true);
             } else {
-                strokeWorldLine(gc, camera, center + offset, from, center + offset, to, LANE, 1.0, true);
+                strokeWorldLine(gc, camera, center + offset, from, center + offset, to, getLaneColor(), 1.0, true);
             }
         }
 
         if (horizontal) {
-            strokeWorldLine(gc, camera, from, center - 2, to, center - 2, MEDIAN, 2.0, false);
-            strokeWorldLine(gc, camera, from, center + 2, to, center + 2, MEDIAN, 2.0, false);
+            strokeWorldLine(gc, camera, from, center - 2, to, center - 2, getMedianColor(), 2.0, false);
+            strokeWorldLine(gc, camera, from, center + 2, to, center + 2, getMedianColor(), 2.0, false);
         } else {
-            strokeWorldLine(gc, camera, center - 2, from, center - 2, to, MEDIAN, 2.0, false);
-            strokeWorldLine(gc, camera, center + 2, from, center + 2, to, MEDIAN, 2.0, false);
+            strokeWorldLine(gc, camera, center - 2, from, center - 2, to, getMedianColor(), 2.0, false);
+            strokeWorldLine(gc, camera, center + 2, from, center + 2, to, getMedianColor(), 2.0, false);
         }
     }
 
     private void drawStopLines(GraphicsContext gc, Camera camera, double centerX, double centerY, boolean includeNorth, boolean includeSouth) {
-        strokeWorldLine(gc, camera, centerX - STOP_OFFSET, centerY + 5, centerX - STOP_OFFSET, centerY + 75, LANE, 4.0, false);
-        strokeWorldLine(gc, camera, centerX + STOP_OFFSET, centerY - 5, centerX + STOP_OFFSET, centerY - 75, LANE, 4.0, false);
+        strokeWorldLine(gc, camera, centerX - STOP_OFFSET, centerY + 5, centerX - STOP_OFFSET, centerY + 75, getLaneColor(), 4.0, false);
+        strokeWorldLine(gc, camera, centerX + STOP_OFFSET, centerY - 5, centerX + STOP_OFFSET, centerY - 75, getLaneColor(), 4.0, false);
         if (includeNorth) {
-            strokeWorldLine(gc, camera, centerX - 75, centerY - STOP_OFFSET, centerX - 5, centerY - STOP_OFFSET, LANE, 4.0, false);
+            strokeWorldLine(gc, camera, centerX - 75, centerY - STOP_OFFSET, centerX - 5, centerY - STOP_OFFSET, getLaneColor(), 4.0, false);
         }
         if (includeSouth) {
-            strokeWorldLine(gc, camera, centerX + 75, centerY + STOP_OFFSET, centerX + 5, centerY + STOP_OFFSET, LANE, 4.0, false);
+            strokeWorldLine(gc, camera, centerX + 75, centerY + STOP_OFFSET, centerX + 5, centerY + STOP_OFFSET, getLaneColor(), 4.0, false);
         }
     }
 
@@ -349,7 +386,7 @@ public class RoadRenderer {
         gc.translate(p.getX(), p.getY());
         gc.rotate(rotationDegree);
         gc.scale(scale, scale);
-        gc.setStroke(LANE);
+        gc.setStroke(getLaneColor());
         gc.setLineWidth(2.0);
         gc.setLineDashes(new double[0]);
 
@@ -418,11 +455,11 @@ public class RoadRenderer {
             double endX, double endY, boolean horizontalRoad) {
         if (horizontalRoad) {
             for (double y = startY; y <= endY; y += 12) {
-                strokeWorldLine(gc, camera, startX, y, endX, y, LANE, 5.0, false);
+                strokeWorldLine(gc, camera, startX, y, endX, y, getLaneColor(), 5.0, false);
             }
         } else {
             for (double x = startX; x <= endX; x += 12) {
-                strokeWorldLine(gc, camera, x, startY, x, endY, LANE, 5.0, false);
+                strokeWorldLine(gc, camera, x, startY, x, endY, getLaneColor(), 5.0, false);
             }
         }
     }
@@ -432,7 +469,7 @@ public class RoadRenderer {
         fillWorldPolygon(gc, camera,
                 new double[] { centerX + signX * 250, centerX + signX * 80, centerX + signX * 80 },
                 new double[] { centerY + signY * 80, centerY + signY * 250, centerY + signY * 80 },
-                ROAD_DARK);
+                getRoadDarkColor());
         strokeWorldLine(gc, camera,
                 centerX + signX * 250, centerY + signY * 80,
                 centerX + signX * 80, centerY + signY * 250,
@@ -441,16 +478,16 @@ public class RoadRenderer {
         fillWorldPolygon(gc, camera,
                 new double[] { centerX + signX * 186, centerX + signX * 80, centerX + signX * 80 },
                 new double[] { centerY + signY * 80, centerY + signY * 186, centerY + signY * 80 },
-                Color.web("#a06050"));
+                renderMode == RenderMode.BASIC ? getSidewalkColor() : Color.web("#a06050"));
         strokeWorldPolygon(gc, camera,
                 new double[] { centerX + signX * 186, centerX + signX * 80, centerX + signX * 80 },
                 new double[] { centerY + signY * 80, centerY + signY * 186, centerY + signY * 80 },
-                Color.web("#dddddd"), 2.0);
+                renderMode == RenderMode.BASIC ? getRoadDarkColor() : Color.web("#dddddd"), 2.0);
 
         strokeWorldLine(gc, camera,
                 centerX + signX * 218, centerY + signY * 80,
                 centerX + signX * 80, centerY + signY * 218,
-                LANE, 2.0, true);
+                getLaneColor(), 2.0, true);
     }
 
     private void drawDashedCenterLine(GraphicsContext gc, Camera camera, double centerX, double centerY,

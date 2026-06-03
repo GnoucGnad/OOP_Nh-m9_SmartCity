@@ -1,13 +1,14 @@
 package vn.edu.hust.traffic.view.renderer;
 
 import java.util.OptionalInt;
-
+import java.util.List;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import vn.edu.hust.traffic.view.Renderer;
 import vn.edu.hust.traffic.view.SimulationSnapshot;
 import vn.edu.hust.traffic.view.SimulationViewSettings;
 import vn.edu.hust.traffic.view.camera.Camera;
+import vn.edu.hust.traffic.model.map.Intersection;
 
 public class DefaultRenderer implements Renderer {
     private final RoadRenderer roadRenderer = new RoadRenderer();
@@ -15,6 +16,7 @@ public class DefaultRenderer implements Renderer {
     private final TrafficLightRenderer trafficLightRenderer = new TrafficLightRenderer();
     private final OverlayRenderer overlayRenderer = new OverlayRenderer();
 
+    @SuppressWarnings("unchecked")
     @Override
     public void render(GraphicsContext gc, SimulationSnapshot snapshot, Camera camera, SimulationViewSettings settings) {
         gc.setFill(Color.web("#eef1ed"));
@@ -29,10 +31,12 @@ public class DefaultRenderer implements Renderer {
         gc.rect(p.getX(), p.getY(), clipW, clipH);
         gc.clip();
 
-        roadRenderer.render(gc, camera, settings.getMapType());
+        roadRenderer.render(gc, camera, settings.getMapType(), settings.getRenderMode());
         vehicleRenderer.tick(System.nanoTime());
         vehicleRenderer.render(gc, snapshot.getVehicles(), camera, settings);
+        
         trafficLightRenderer.render(gc, snapshot.getLights(), camera, settings);
+        
         gc.restore();
 
         if (settings.isShowOverlay()) {
