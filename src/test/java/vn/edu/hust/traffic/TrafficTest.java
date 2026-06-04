@@ -60,6 +60,29 @@ public class TrafficTest {
     }
 
     @Test
+    public void testStoppedEmergencyDoesNotTriggerPreemption() throws Exception {
+        List<TrafficLight> lights = redLights(4);
+        CrossIntersection cross = new CrossIntersection("cross1", 400.0, 300.0, lights);
+        List<Intersection> intersections = List.of(cross);
+        
+        // Stopped priority vehicle (speed = 0.0, direction = Math.PI (RTL, light index 1))
+        Vehicle ambulance = new Ambulance("Amb1", 600.0, 260.0, 0.0, Math.PI, true);
+        List<Vehicle> vehicles = List.of(ambulance);
+        
+        ambulance.update(0.016, vehicles, intersections, 1400, 600);
+        
+        vn.edu.hust.traffic.controller.IntersectionPhaseController phaseController = 
+            new vn.edu.hust.traffic.controller.IntersectionPhaseController(lights);
+            
+        phaseController.update(0.016, vehicles, intersections);
+        
+        // Since speed is 0.0, it should NOT trigger preemption.
+        // Therefore, phase 0 remains active (index 0 is GREEN, index 1 is RED).
+        assertEquals(TrafficLight.State.GREEN, lights.get(0).getState());
+        assertEquals(TrafficLight.State.RED, lights.get(1).getState());
+    }
+
+    @Test
     public void testSmartActuatedPhaseSkipping() throws Exception {
         List<TrafficLight> lights = redLights(4);
         CrossIntersection cross = new CrossIntersection("cross1", 400.0, 300.0, lights);

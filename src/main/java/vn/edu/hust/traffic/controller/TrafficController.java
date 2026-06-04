@@ -33,8 +33,8 @@ public class TrafficController {
     private static final int MEDIUM_DENSITY_MAX_VEHICLES = 30;
     private static final int HIGH_DENSITY_MAX_VEHICLES = 40;
     private static final int VEHICLE_TYPE_ROLLS = 200;
-    private static final int FIRE_TRUCK_ROLLS = 5;     // 5/200 = 1/40 vehicles
-    private static final int AMBULANCE_ROLLS = 10;     // 10/200 = 1/20 vehicles
+    private static final int FIRE_TRUCK_ROLLS = 1;     // 1/200 = 0.5% vehicles
+    private static final int AMBULANCE_ROLLS = 2;      // 2/200 = 1% vehicles
     private static final int BUS_ROLLS = 20;           // 20/200 = 10%
     private static final int CAR_ROLLS = 60;           // 60/200 = 30%
 
