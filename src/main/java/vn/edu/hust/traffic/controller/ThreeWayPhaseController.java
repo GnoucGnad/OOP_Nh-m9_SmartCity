@@ -78,7 +78,7 @@ public class ThreeWayPhaseController {
         Vehicle closest = null;
         double minDist = Double.MAX_VALUE;
         for (Vehicle v : vehicles) {
-            if (v.isPriorityVehicle()) {
+            if (v.isPriorityVehicle() && v.getSpeed() > 1.0) {
                 vn.edu.hust.traffic.model.map.Intersection target = v.getTargetIntersection(intersections);
                 if (target != null && target.getLights() == this.lights) {
                     double dist = v.getDistToStopLine();
